@@ -20,8 +20,8 @@ type ProcessInfo struct {
 
 // Process defines the behavior of a process
 type Process interface {
-	GetInfo() ([]ProcessInfo, error)
-	Kill(pid int) error
+	GetInfo() (ProcessInfo, error)
+	Kill() error
 }
 
 // ProcessorMonitor will be used to interact with the system processes
