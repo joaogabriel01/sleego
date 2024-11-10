@@ -9,7 +9,7 @@ type AppConfig struct {
 
 // ConfigLoader defines the behavior for loading application configurations.
 type ConfigLoader interface {
-	Load(path string) (AppConfig, error)
+	Load(path string) ([]AppConfig, error)
 }
 
 // ProcessInfo contains the information of a process
