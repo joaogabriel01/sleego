@@ -89,3 +89,5 @@ func (p *ProcessPolicyImpl) isAllowedToRun(appConfig AppConfig) bool {
 	}
 	return true
 }
+
+var _ ProcessPolicy = &ProcessPolicyImpl{}
