@@ -1,6 +1,7 @@
 package sleego
 
 import (
+	"context"
 	"log"
 	"time"
 )
@@ -23,8 +24,12 @@ func NewProcessPolicyImpl(monitor ProcessorMonitor, now func() time.Time) *Proce
 }
 
 // Apply will check the running processes and kill the ones that are not allowed to run
-func (p *ProcessPolicyImpl) Apply(appsConfig []AppConfig) error {
+func (p *ProcessPolicyImpl) Apply(ctx context.Context, appsConfig []AppConfig) error {
 	for {
+		if ctx.Err() != nil {
+			log.Println("Context cancelled, stopping process policy")
+			return nil
+		}
 		p.enforceProcessPolicy(appsConfig)
 		time.Sleep(sleepTime)
 	}

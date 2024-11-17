@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 
@@ -8,6 +9,7 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	configPath := flag.String("config", "./config.json", "Path to config file")
 	flag.Parse()
 
@@ -20,5 +22,5 @@ func main() {
 	monitor := &sleego.ProcessorMonitorImpl{}
 	policy := sleego.NewProcessPolicyImpl(monitor, nil)
 	log.Printf("Starting process policy with config: %+v of path: %s", config, *configPath)
-	policy.Apply(config)
+	policy.Apply(ctx, config)
 }

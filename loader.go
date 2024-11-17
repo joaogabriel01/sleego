@@ -23,4 +23,12 @@ func (l *Loader) Load(path string) ([]AppConfig, error) {
 	return appConfigs, err
 }
 
+func (l *Loader) Save(path string, configs []AppConfig) error {
+	data, err := json.MarshalIndent(configs, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0644)
+}
+
 var _ ConfigLoader = &Loader{}
