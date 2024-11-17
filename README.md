@@ -15,12 +15,12 @@ The configuration JSON file should follow this format:
 ```json
 [
     {
-        "name": "app1.exe", 
+        "name": "app1.exe",
         "allowed_from": "08:00",
         "allowed_to": "18:00"
     },
     {
-        "name": "app2.exe", 
+        "name": "app2.exe",
         "allowed_from": "09:00",
         "allowed_to": "23:20"
     }
@@ -44,13 +44,49 @@ The configuration JSON file should follow this format:
     go mod tidy
     ```
 
-## Usage
+3. **For GUI Execution**:
+    - Install GCC (required for the GUI version).
+    - On Windows, install MinGW.
+    - On macOS, install Xcode Command Line Tools:
+        ```bash
+        xcode-select --install
+        ```
+    - On Linux based in Debian:
+        ```bash
+        sudo apt-get install build-essential
+        ```
 
-Run Sleego by specifying the path to the configuration file:
+## Execution Methods
+
+Sleego can be executed in two ways:
+
+### CLI Execution
+
+Run the command-line interface version located at `cmd/cli/main.go`:
 
 ```bash
 go run ./cmd/cli/main.go -config="./config.json"
 ```
+or
+```bash
+go build ./cmd/cli/main.go
+./main or ./main.exe
+```
+
+### GUI Execution
+
+Run the graphical user interface version located at `cmd/gui/main.go`:
+
+```bash
+go run ./cmd/gui/main.go
+```
+or
+```bash
+go build ./cmd/gui/main.go
+./main or ./main.exe
+```
+
+**Note**: Ensure GCC is installed before running the GUI version.
 
 ## Execution Example
 
@@ -68,6 +104,11 @@ Starting process policy with config: [{name:app1.exe, allowed_from:08:00, allowe
 ## Contributions
 
 Contributions are welcome. Feel free to open an issue or submit a pull request.
+
+### Todo
+
+- Ability to create groups of applications with the same schedule.
+- Ability to view running processes to facilitate adding processes to be monitored.
 
 ## License
 
