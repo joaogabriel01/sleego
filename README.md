@@ -49,7 +49,7 @@ The configuration JSON file should follow this format:
 Run Sleego by specifying the path to the configuration file:
 
 ```bash
-go run ./cmd/sleego/main.go -config="./config.json"
+go run ./cmd/cli/main.go -config="./config.json"
 ```
 
 ## Execution Example
