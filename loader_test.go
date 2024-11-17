@@ -1,6 +1,7 @@
 package sleego
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 )
@@ -107,5 +108,80 @@ func TestLoader_Load_EmptyFile(t *testing.T) {
 	_, err = loader.Load(tmpfile.Name())
 	if err == nil {
 		t.Error("Expected error for empty JSON, got nil")
+	}
+}
+func TestLoader_Save_Success(t *testing.T) {
+	// Define sample AppConfig data
+	configs := []AppConfig{
+		{
+			Name:        "TestApp",
+			AllowedFrom: "08:00",
+			AllowedTo:   "18:00",
+		},
+		{
+			Name:        "TestApp2",
+			AllowedFrom: "09:00",
+			AllowedTo:   "20:00",
+		},
+	}
+
+	// Create a temporary file
+	tmpfile, err := os.CreateTemp("", "output*.json")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpfile.Name())
+
+	loader := &Loader{}
+	err = loader.Save(tmpfile.Name(), configs)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	// Read the file back and verify its content
+	data, err := os.ReadFile(tmpfile.Name())
+	if err != nil {
+		t.Fatalf("Failed to read temp file: %v", err)
+	}
+
+	var savedConfigs []AppConfig
+	err = json.Unmarshal(data, &savedConfigs)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal saved data: %v", err)
+	}
+
+	if len(savedConfigs) != len(configs) {
+		t.Errorf("Expected %d configs, got %d", len(configs), len(savedConfigs))
+	}
+
+	for i, config := range savedConfigs {
+		expected := configs[i]
+		if config.Name != expected.Name {
+			t.Errorf("Config %d: expected Name '%s', got '%s'", i, expected.Name, config.Name)
+		}
+		if config.AllowedFrom != expected.AllowedFrom {
+			t.Errorf("Config %d: expected AllowedFrom '%s', got '%s'", i, expected.AllowedFrom, config.AllowedFrom)
+		}
+		if config.AllowedTo != expected.AllowedTo {
+			t.Errorf("Config %d: expected AllowedTo '%s', got '%s'", i, expected.AllowedTo, config.AllowedTo)
+		}
+	}
+}
+
+func TestLoader_Save_InvalidPath(t *testing.T) {
+	// Define sample AppConfig data
+	configs := []AppConfig{
+		{
+			Name:        "TestApp",
+			AllowedFrom: "08:00",
+			AllowedTo:   "18:00",
+		},
+	}
+
+	loader := &Loader{}
+	// Attempt to save to an invalid path
+	err := loader.Save("/invalid_path/config.json", configs)
+	if err == nil {
+		t.Error("Expected error for invalid path, got nil")
 	}
 }
