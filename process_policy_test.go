@@ -1,6 +1,7 @@
 package sleego
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -183,7 +184,8 @@ func TestApply(t *testing.T) {
 	}
 
 	policy := NewProcessPolicyImpl(mockMonitor, mockNow)
-	go policy.Apply(appsConfig)
+	ctx := context.Background()
+	go policy.Apply(ctx, appsConfig)
 
 	time.Sleep(100 * time.Millisecond) // Wait for enforcement
 
@@ -217,7 +219,8 @@ func TestApply_ProcessAllowed(t *testing.T) {
 	}
 
 	policy := NewProcessPolicyImpl(mockMonitor, mockNow)
-	go policy.Apply(appsConfig)
+	ctx := context.Background()
+	go policy.Apply(ctx, appsConfig)
 
 	time.Sleep(100 * time.Millisecond) // Wait for enforcement
 

@@ -1,5 +1,7 @@
 package sleego
 
+import "context"
+
 // AppConfig is the struct that will be used to store the configuration of each app
 type AppConfig struct {
 	Name        string `json:"name"`
@@ -31,5 +33,5 @@ type ProcessorMonitor interface {
 
 // ProcessPolicy controls when the application process will be terminated
 type ProcessPolicy interface {
-	Apply(appsConfig []AppConfig) error
+	Apply(ctx context.Context, appsConfig []AppConfig) error
 }
