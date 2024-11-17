@@ -19,7 +19,7 @@ func TestLoader_Load_Success(t *testing.T) {
 			"allowed_to": "20:00"
 		}
 	]`
-	tmpfile, err := os.CreateTemp("C:/Users/joaog/Documents/sleego - Copia", "config*.json")
+	tmpfile, err := os.CreateTemp("./", "config*.json")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
