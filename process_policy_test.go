@@ -35,7 +35,7 @@ func (m *MockProcessorMonitor) GetRunningProcesses() ([]Process, error) {
 // *************** TESTS *************** //
 
 // TestEnforceProcessPolicy tests the Apply method
-func TestEnforceProcessPolicy_KillProcess(t *testing.T) {
+func TestEnforceProcessPolicy_KillProcessAndVerifyChannel(t *testing.T) {
 	mockProcess := &MockProcess{
 		info: ProcessInfo{
 			Name: "Notepad",
@@ -59,8 +59,18 @@ func TestEnforceProcessPolicy_KillProcess(t *testing.T) {
 		return time.Date(2023, 10, 10, 18, 0, 0, 0, time.UTC) // 18:00 UTC on October 10, 2023
 	}
 
-	policy := NewProcessPolicyImpl(mockMonitor, mockNow)
+	ch := make(chan string, 1)
+	policy := NewProcessPolicyImpl(mockMonitor, mockNow, ch)
 	policy.enforceProcessPolicy(appsConfig)
+
+	select {
+	case alert := <-ch:
+		if alert != "Killing process: Notepad" {
+			t.Errorf("Expected alert to be 'Killing process: Notepad', got %s", alert)
+		}
+	default:
+		t.Errorf("Expected alert to be sent, but it was not")
+	}
 
 	if !mockProcess.killed {
 		t.Errorf("Expected process to be killed, but it was not")
@@ -91,7 +101,7 @@ func TestEnforceProcessPolicy_DoNotKillProcess(t *testing.T) {
 		return time.Date(2023, 10, 10, 12, 0, 0, 0, time.UTC) // 12:00 UTC on October 10, 2023
 	}
 
-	policy := NewProcessPolicyImpl(mockMonitor, mockNow)
+	policy := NewProcessPolicyImpl(mockMonitor, mockNow, nil)
 	policy.enforceProcessPolicy(appsConfig)
 
 	if mockProcess.killed {
@@ -123,7 +133,7 @@ func TestEnforceProcessPolicy_ProcessNotInConfig(t *testing.T) {
 		return time.Date(2023, 10, 10, 15, 0, 0, 0, time.UTC)
 	}
 
-	policy := NewProcessPolicyImpl(mockMonitor, mockNow)
+	policy := NewProcessPolicyImpl(mockMonitor, mockNow, nil)
 	policy.enforceProcessPolicy(appsConfig)
 
 	if mockProcess.killed {
@@ -137,7 +147,7 @@ func TestIsAllowedToRun_InvalidTimeFormat(t *testing.T) {
 		AllowedTo:   "invalid",
 	}
 
-	policy := NewProcessPolicyImpl(nil, nil)
+	policy := NewProcessPolicyImpl(nil, nil, nil)
 	result := policy.isAllowedToRun(appConfig)
 
 	if result {
@@ -151,7 +161,7 @@ func TestIsAllowedToRun_EmptyTimes(t *testing.T) {
 		AllowedTo:   "",
 	}
 
-	policy := NewProcessPolicyImpl(nil, nil)
+	policy := NewProcessPolicyImpl(nil, nil, nil)
 	result := policy.isAllowedToRun(appConfig)
 
 	if result {
@@ -183,7 +193,7 @@ func TestApply(t *testing.T) {
 		return time.Date(2023, 10, 10, 18, 0, 0, 0, time.UTC)
 	}
 
-	policy := NewProcessPolicyImpl(mockMonitor, mockNow)
+	policy := NewProcessPolicyImpl(mockMonitor, mockNow, nil)
 	ctx := context.Background()
 	go policy.Apply(ctx, appsConfig)
 
@@ -218,7 +228,7 @@ func TestApply_ProcessAllowed(t *testing.T) {
 		return time.Date(2023, 10, 10, 12, 0, 0, 0, time.UTC)
 	}
 
-	policy := NewProcessPolicyImpl(mockMonitor, mockNow)
+	policy := NewProcessPolicyImpl(mockMonitor, mockNow, nil)
 	ctx := context.Background()
 	go policy.Apply(ctx, appsConfig)
 
@@ -349,7 +359,7 @@ func TestIsAllowedToRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			policy := NewProcessPolicyImpl(nil, func() time.Time {
 				return tt.mockNow
-			})
+			}, nil)
 			result := policy.isAllowedToRun(tt.appConfig)
 			if result != tt.expected {
 				t.Errorf("isAllowedToRun() = %v, expected %v", result, tt.expected)
@@ -361,7 +371,7 @@ func TestIsAllowedToRun(t *testing.T) {
 // TestNewProcessPolicyImpl tests the NewProcessPolicyImpl constructor
 func TestNewProcessPolicyImpl(t *testing.T) {
 	mockMonitor := &MockProcessorMonitor{}
-	policy := NewProcessPolicyImpl(mockMonitor, nil)
+	policy := NewProcessPolicyImpl(mockMonitor, nil, nil)
 
 	if policy.monitor != mockMonitor {
 		t.Errorf("Expected monitor to be %v, got %v", mockMonitor, policy.monitor)

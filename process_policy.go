@@ -2,6 +2,7 @@ package sleego
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 )
@@ -13,14 +14,15 @@ const sleepTime = 5 * time.Second
 type ProcessPolicyImpl struct {
 	monitor ProcessorMonitor
 	now     func() time.Time
+	alertCh chan string
 }
 
 // NewProcessPolicyImpl creates a new ProcessPolicyImpl
-func NewProcessPolicyImpl(monitor ProcessorMonitor, now func() time.Time) *ProcessPolicyImpl {
+func NewProcessPolicyImpl(monitor ProcessorMonitor, now func() time.Time, alert chan string) *ProcessPolicyImpl {
 	if now == nil {
 		now = time.Now
 	}
-	return &ProcessPolicyImpl{monitor: monitor, now: now}
+	return &ProcessPolicyImpl{monitor: monitor, now: now, alertCh: alert}
 }
 
 // Apply will check the running processes and kill the ones that are not allowed to run
@@ -52,7 +54,11 @@ func (p *ProcessPolicyImpl) enforceProcessPolicy(appsConfig []AppConfig) {
 			if info.Name == appConfig.Name {
 				// Check if the process is running outside the allowed hours
 				if !p.isAllowedToRun(appConfig) {
-					log.Println("Killing process:", info.Name, "PID:", info.Pid)
+					msg := fmt.Sprintf("Killing process: %s, PID: %d", info.Name, info.Pid)
+					if p.alertCh != nil {
+						p.alertCh <- msg
+					}
+					log.Println(msg)
 					err := process.Kill()
 					if err != nil {
 						log.Printf("Error killing process %s: %v", info.Name, err)

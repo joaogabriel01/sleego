@@ -123,13 +123,25 @@ func main() {
 		cancel()
 		ctx, cancel = context.WithCancel(context.Background())
 		monitor := &sleego.ProcessorMonitorImpl{}
-		policy := sleego.NewProcessPolicyImpl(monitor, nil)
+		processChan := make(chan string)
+		policy := sleego.NewProcessPolicyImpl(monitor, nil, processChan)
 		log.Printf("Starting process policy with config: %+v of path: %s", appConfigs, configPath)
 		dialog.ShowInformation("Running", "Applying the policy...", w)
 
 		go func() {
 			if err := policy.Apply(ctx, appConfigs); err != nil {
 				log.Printf("Error applying the policy: %v", err)
+			}
+		}()
+
+		go func() {
+			for {
+				select {
+				case msg := <-processChan:
+					a.SendNotification(fyne.NewNotification("Alert", msg))
+				case <-ctx.Done():
+					return
+				}
 			}
 		}()
 

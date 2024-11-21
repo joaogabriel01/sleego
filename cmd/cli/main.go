@@ -20,7 +20,7 @@ func main() {
 	}
 
 	monitor := &sleego.ProcessorMonitorImpl{}
-	policy := sleego.NewProcessPolicyImpl(monitor, nil)
+	policy := sleego.NewProcessPolicyImpl(monitor, nil, nil)
 	log.Printf("Starting process policy with config: %+v of path: %s", config, *configPath)
 	policy.Apply(ctx, config)
 }
