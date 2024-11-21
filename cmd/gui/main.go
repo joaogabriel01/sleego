@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/joaogabriel01/sleego"
 )
@@ -27,6 +28,37 @@ func main() {
 
 	a := app.NewWithID("sleego.gui")
 	w := a.NewWindow("Configuration")
+
+	icon, err := fyne.LoadResourceFromPath("temporary_icon.png")
+	if err != nil {
+		log.Fatalf("Error loading icon: %v", err)
+	}
+
+	trayMenu := fyne.NewMenu("",
+		fyne.NewMenuItem("Open", func() {
+			w.Show()
+		}),
+		fyne.NewMenuItem("Quit", func() {
+			a.Quit()
+		}),
+	)
+	if desk, ok := a.(desktop.App); ok {
+		desk.SetSystemTrayMenu(trayMenu)
+		desk.SetSystemTrayIcon(icon)
+	}
+
+	w.SetIcon(icon)
+
+	w.SetMainMenu(fyne.NewMainMenu(
+		fyne.NewMenu("File", fyne.NewMenuItem("Quit", func() {
+			a.Quit()
+		})),
+	))
+
+	w.SetCloseIntercept(func() {
+		w.Hide()
+	})
+
 	screenSize := w.Canvas().Size()
 	if screenSize.Width == 0 || screenSize.Height == 0 {
 		screenSize = fyne.NewSize(800, 600)
