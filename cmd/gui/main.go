@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/joaogabriel01/sleego"
 )
@@ -23,8 +26,39 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	a := app.New()
+	a := app.NewWithID("sleego.gui")
 	w := a.NewWindow("Configuration")
+
+	icon, err := fyne.LoadResourceFromPath("images/sleego_icon.png")
+	if err != nil {
+		log.Fatalf("Error loading icon: %v", err)
+	}
+
+	trayMenu := fyne.NewMenu("",
+		fyne.NewMenuItem("Open", func() {
+			w.Show()
+		}),
+		fyne.NewMenuItem("Quit", func() {
+			a.Quit()
+		}),
+	)
+	if desk, ok := a.(desktop.App); ok {
+		desk.SetSystemTrayMenu(trayMenu)
+		desk.SetSystemTrayIcon(icon)
+	}
+
+	w.SetIcon(icon)
+
+	w.SetMainMenu(fyne.NewMainMenu(
+		fyne.NewMenu("File", fyne.NewMenuItem("Quit", func() {
+			a.Quit()
+		})),
+	))
+
+	w.SetCloseIntercept(func() {
+		w.Hide()
+	})
+
 	screenSize := w.Canvas().Size()
 	if screenSize.Width == 0 || screenSize.Height == 0 {
 		screenSize = fyne.NewSize(800, 600)
@@ -114,21 +148,69 @@ func main() {
 		log.Println("Configurations saved successfully!")
 	})
 
+	shutdownTimeEntry := widget.NewEntry()
+	shutdownTimeEntry.SetPlaceHolder("Enter shutdown time (HH:MM)")
+
 	runButton := widget.NewButton("Run", func() {
 		cancel()
 		ctx, cancel = context.WithCancel(context.Background())
 		monitor := &sleego.ProcessorMonitorImpl{}
-		policy := sleego.NewProcessPolicyImpl(monitor, nil)
+		processChan := make(chan string)
+		policy := sleego.NewProcessPolicyImpl(monitor, nil, processChan)
 		log.Printf("Starting process policy with config: %+v of path: %s", appConfigs, configPath)
 		dialog.ShowInformation("Running", "Applying the policy...", w)
 
-		go policy.Apply(ctx, appConfigs)
+		go func() {
+			if err := policy.Apply(ctx, appConfigs); err != nil {
+				log.Printf("Error applying the policy: %v", err)
+			}
+		}()
+
+		go func() {
+			for {
+				select {
+				case msg := <-processChan:
+					a.SendNotification(fyne.NewNotification("Alert", msg))
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+
+		shutdownTimeStr := shutdownTimeEntry.Text
+		shutdownTime, err := time.Parse("15:04", shutdownTimeStr)
+		if err != nil {
+			dialog.ShowError(fmt.Errorf("invalid shutdown time format"), w)
+			return
+		}
+		log.Printf("Starting shutdown policy with time: %s", shutdownTimeStr)
+		channelToAlert := make(chan string)
+		alerts := []int{10, 3, 1}
+		shutdownPolicy := sleego.NewShutdownPolicy(channelToAlert, alerts)
+
+		go func() {
+			if err := shutdownPolicy.Apply(shutdownTime); err != nil {
+				log.Printf("Error applying the shutdown policy: %v", err)
+			}
+		}()
+
+		go func() {
+			for {
+				select {
+				case msg := <-channelToAlert:
+					a.SendNotification(fyne.NewNotification("Alert", msg))
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
 	})
 
 	mainContainer := container.NewVBox(
 		appsContainer,
 		addButton,
 		saveButton,
+		shutdownTimeEntry,
 		runButton,
 	)
 

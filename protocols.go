@@ -1,6 +1,9 @@
 package sleego
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // AppConfig is the struct that will be used to store the configuration of each app
 type AppConfig struct {
@@ -34,4 +37,9 @@ type ProcessorMonitor interface {
 // ProcessPolicy controls when the application process will be terminated
 type ProcessPolicy interface {
 	Apply(ctx context.Context, appsConfig []AppConfig) error
+}
+
+// ShutdownPolicy defines the behavior for shutting down the system
+type ShutdownPolicy interface {
+	Apply(endTime time.Time) error
 }
