@@ -164,12 +164,12 @@ Sleego utilizes system notifications to keep you informed:
 - **Process Termination Alerts**: Notifies you when a process is terminated due to schedule restrictions.
 
     ![Process Termination Notification](images/process_termination_notification.png)
-    *Figure 3: Notification when a process is terminated.*
+    *Figure 2: Notification when a process is terminated.*
 
 - **Shutdown Warnings**: Provides alerts at set intervals before the scheduled shutdown time (e.g., 10 minutes, 3 minutes, 1 minute).
 
     ![Shutdown Warning Notification](images/shutdown_warning_notification.png)
-    *Figure 4: Notification before system shutdown.*
+    *Figure 3: Notification before system shutdown.*
 
 ## Security and Considerations
 
