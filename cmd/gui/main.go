@@ -29,7 +29,7 @@ func main() {
 	a := app.NewWithID("sleego.gui")
 	w := a.NewWindow("Configuration")
 
-	icon, err := fyne.LoadResourceFromPath("sleego_icon.png")
+	icon, err := fyne.LoadResourceFromPath("images/sleego_icon.png")
 	if err != nil {
 		log.Fatalf("Error loading icon: %v", err)
 	}
@@ -185,7 +185,7 @@ func main() {
 		}
 		log.Printf("Starting shutdown policy with time: %s", shutdownTimeStr)
 		channelToAlert := make(chan string)
-		alerts := []int{3, 2, 1}
+		alerts := []int{10, 3, 1}
 		shutdownPolicy := sleego.NewShutdownPolicy(channelToAlert, alerts)
 
 		go func() {
