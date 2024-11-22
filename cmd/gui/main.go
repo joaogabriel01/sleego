@@ -29,7 +29,7 @@ func main() {
 	a := app.NewWithID("sleego.gui")
 	w := a.NewWindow("Configuration")
 
-	icon, err := fyne.LoadResourceFromPath("temporary_icon.png")
+	icon, err := fyne.LoadResourceFromPath("sleego_icon.png")
 	if err != nil {
 		log.Fatalf("Error loading icon: %v", err)
 	}
