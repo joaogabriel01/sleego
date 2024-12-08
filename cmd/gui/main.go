@@ -68,10 +68,12 @@ func main() {
 	configPath := "./config.json"
 	loader := sleego.Loader{}
 
-	appConfigs, err := loader.Load(configPath)
+	fileConfig, err := loader.Load(configPath)
 	if err != nil {
 		log.Fatalf("Error loading configurations: %v", err)
 	}
+
+	appConfigs := fileConfig.Apps
 
 	var entries []AppEntry
 	appsContainer := container.NewVBox()
@@ -129,27 +131,36 @@ func main() {
 		addApp(sleego.AppConfig{})
 	})
 
+	shutdownTimeEntry := widget.NewEntry()
+	shutdownTimeEntry.SetPlaceHolder("Enter shutdown time (HH:MM)")
+	if fileConfig.Shutdown != "" {
+		shutdownTimeEntry.SetText(fileConfig.Shutdown)
+	}
+
 	saveButton := widget.NewButton("Save", func() {
-		updatedConfigs := make([]sleego.AppConfig, len(entries))
+		updatedAppConfigs := make([]sleego.AppConfig, len(entries))
 		for i, entry := range entries {
-			updatedConfigs[i] = sleego.AppConfig{
+			updatedAppConfigs[i] = sleego.AppConfig{
 				Name:        entry.nameEntry.Text,
 				AllowedFrom: entry.allowedFromEntry.Text,
 				AllowedTo:   entry.allowedToEntry.Text,
 			}
+		}
+		shutdownConfig := shutdownTimeEntry.Text
+
+		updatedConfigs := sleego.FileConfig{
+			Apps:     updatedAppConfigs,
+			Shutdown: shutdownConfig,
 		}
 
 		if err := loader.Save(configPath, updatedConfigs); err != nil {
 			log.Printf("Error saving the configuration file: %v", err)
 			return
 		}
-		appConfigs = updatedConfigs
+		fileConfig = updatedConfigs
 		dialog.ShowInformation("Success", "Configurations saved successfully!", w)
 		log.Println("Configurations saved successfully!")
 	})
-
-	shutdownTimeEntry := widget.NewEntry()
-	shutdownTimeEntry.SetPlaceHolder("Enter shutdown time (HH:MM)")
 
 	runButton := widget.NewButton("Run", func() {
 		cancel()
@@ -186,10 +197,10 @@ func main() {
 		log.Printf("Starting shutdown policy with time: %s", shutdownTimeStr)
 		channelToAlert := make(chan string)
 		alerts := []int{10, 3, 1}
-		shutdownPolicy := sleego.NewShutdownPolicy(channelToAlert, alerts)
+		shutdownPolicy := sleego.NewShutdownPolicyImpl(channelToAlert, alerts)
 
 		go func() {
-			if err := shutdownPolicy.Apply(shutdownTime); err != nil {
+			if err := shutdownPolicy.Apply(ctx, shutdownTime); err != nil {
 				log.Printf("Error applying the shutdown policy: %v", err)
 			}
 		}()

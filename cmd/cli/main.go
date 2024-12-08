@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"time"
 
 	"github.com/joaogabriel01/sleego"
 )
@@ -20,7 +21,17 @@ func main() {
 	}
 
 	monitor := &sleego.ProcessorMonitorImpl{}
-	policy := sleego.NewProcessPolicyImpl(monitor, nil, nil)
+	appPolicy := sleego.NewProcessPolicyImpl(monitor, nil, nil)
+
+	shutdownChannel := make(chan string)
+	shutdownPolicy := sleego.NewShutdownPolicyImpl(shutdownChannel, []int{})
+	shutdownTime, err := time.Parse("15:04", config.Shutdown)
+	if err != nil {
+		log.Fatalf("Error parsing shutdown time: %v", err)
+	}
+
 	log.Printf("Starting process policy with config: %+v of path: %s", config, *configPath)
-	policy.Apply(ctx, config)
+	go appPolicy.Apply(ctx, config.Apps)
+	go shutdownPolicy.Apply(ctx, shutdownTime)
+
 }
