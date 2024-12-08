@@ -6,7 +6,7 @@
         "allowed_to": "10:00"
       },
       {
-        "name": "brave.exe",
+        "name": "example2.exe",
         "allowed_from": "14:00",
         "allowed_to": "23:30"
       }

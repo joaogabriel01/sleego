@@ -1,6 +1,6 @@
 # Sleego
 
-**Sleego** is a Go application designed to monitor and control the execution of processes based on specified schedules. It allows you to configure time restrictions for applications, forcefully terminating those running outside their permitted hours. Additionally, only the GUI version of Sleego supports scheduled system shutdowns.
+**Sleego** is a Go application designed to monitor and control the execution of processes based on specified schedules. It allows you to configure time restrictions for applications, forcefully terminating those running outside their permitted hours. Additionally, Sleego support scheduled system shutdowns.
 
 ## Table of Contents
 
@@ -24,12 +24,11 @@
 ## Overview
 
 Sleego monitors running processes based on a JSON configuration file that lists the processes to monitor and their allowed execution times. It periodically checks the running processes and immediately terminates any that are outside their specified schedule.
+
 - **GUI Version:** In the GUI version, you can modify the configuration directly within the interface. After making changes, simply click the Save and Run button to reapply the new settings without needing to restart the application.
 - **CLI Version:** In contrast, the CLI version requires you to stop the application and run it again to apply any changes made to the configuration file.
 
-Additionally, **only the GUI version of Sleego supports scheduled system shutdowns**. This feature allows users to set a specific time for the computer to shut down automatically, providing enhanced control over system usage. Sleego also offers system notifications to inform users about process terminations and impending shutdowns.
-
-> **Note**: Scheduled system shutdowns and real-time configuration updates are exclusively available in the GUI version of Sleego. Ensure you are using the GUI application to utilize these features.
+Both the GUI and CLI versions of Sleego support scheduled system shutdowns. This feature allows users to set a specific time for the computer to shut down automatically, providing enhanced control over system usage. Sleego also offers system notifications to inform users about process terminations and impending shutdowns.
 
 ## Features
 
@@ -48,18 +47,21 @@ Additionally, **only the GUI version of Sleego supports scheduled system shutdow
 The configuration JSON file should follow this format:
 
 ```json
-[
-    {
-        "name": "app1.exe",
-        "allowed_from": "08:00",
-        "allowed_to": "18:00"
-    },
-    {
-        "name": "app2.exe",
+{
+  "apps":  [
+      {
+        "name": "example1.exe",
         "allowed_from": "09:00",
-        "allowed_to": "23:20"
-    }
-]
+        "allowed_to": "10:00"
+      },
+      {
+        "name": "example2.exe",
+        "allowed_from": "14:00",
+        "allowed_to": "23:30"
+      }
+  ],
+  "shutdown": "23:59"
+}
 ```
 
 - **name**: The name of the process (e.g., `app1.exe`).
@@ -146,14 +148,18 @@ Starting process policy with config: [{name:app1.exe, allowed_from:08:00, allowe
 
 ### Scheduled Shutdown
 
-Sleego's GUI includes an option to schedule a system shutdown at a specified time.
-
 #### Setting Up a Scheduled Shutdown
+
+- **GUI**:
 
 1. Open the Sleego GUI.
 2. Go to "Enter shutdown time (HH:MM) 
 3. Set the desired time.
 4. Click "Run".
+
+- **CLI**:
+
+1. Just change the `shutdown` field in the JSON configuration file.
 
 Sleego will display notifications as the shutdown time approaches and before initiating the shutdown.
 
