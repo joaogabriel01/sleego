@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+// FileConfig is the struct that will be used to store the configuration of the apps
+type FileConfig struct {
+	Apps     []AppConfig `json:"apps"`
+	Shutdown string      `json:"shutdown"`
+}
+
 // AppConfig is the struct that will be used to store the configuration of each app
 type AppConfig struct {
 	Name        string `json:"name"`
@@ -14,7 +20,7 @@ type AppConfig struct {
 
 // ConfigLoader defines the behavior for loading application configurations.
 type ConfigLoader interface {
-	Load(path string) ([]AppConfig, error)
+	Load(path string) (FileConfig, error)
 }
 
 // ProcessInfo contains the information of a process
@@ -41,5 +47,5 @@ type ProcessPolicy interface {
 
 // ShutdownPolicy defines the behavior for shutting down the system
 type ShutdownPolicy interface {
-	Apply(endTime time.Time) error
+	Apply(ctx context.Context, endTime time.Time) error
 }
