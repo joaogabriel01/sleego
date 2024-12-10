@@ -1,6 +1,7 @@
 package sleego
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -15,7 +16,7 @@ type ShutdownPolicyImpl struct {
 	timesToAlert []int
 }
 
-func NewShutdownPolicy(c chan string, timesToAlert []int) ShutdownPolicy {
+func NewShutdownPolicyImpl(c chan string, timesToAlert []int) ShutdownPolicy {
 	return &ShutdownPolicyImpl{
 		shutdown:     shutdown,
 		c:            c,
@@ -23,38 +24,49 @@ func NewShutdownPolicy(c chan string, timesToAlert []int) ShutdownPolicy {
 	}
 }
 
-// Apply will shutdown the computer at the specified time.
-func (s *ShutdownPolicyImpl) Apply(endTime time.Time) error {
-
+// Apply schedules a shutdown at the specified time.
+func (s *ShutdownPolicyImpl) Apply(ctx context.Context, endTime time.Time) error {
 	now := time.Now()
+	shutdownTime := time.Date(now.Year(), now.Month(), now.Day(), endTime.Hour(), endTime.Minute(), endTime.Second(), 0, now.Location())
 
-	endDateTime := time.Date(now.Year(), now.Month(), now.Day(), endTime.Hour(), endTime.Minute(), endTime.Second(), 0, now.Location())
-
-	if endDateTime.Before(now) {
-		endDateTime = endDateTime.Add(24 * time.Hour)
+	if shutdownTime.Before(now) {
+		shutdownTime = shutdownTime.Add(24 * time.Hour)
 	}
 
-	duration := endDateTime.Sub(now)
+	duration := time.Until(shutdownTime)
+	if duration <= 0 {
+		log.Println("Shutting down now")
+		return s.shutdown()
+	}
+
+	log.Printf("Shutting down scheduled in %v", duration)
+
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
 
 	for _, timeToAlert := range s.timesToAlert {
-		durationToAlert := duration - time.Duration(timeToAlert)*time.Minute
-		if durationToAlert > 0 {
-			go func(t int) {
-				time.Sleep(durationToAlert)
-				msg := fmt.Sprintf("Shutting down in %v minutes", t)
-				log.Println(msg)
-				s.c <- msg
-			}(timeToAlert)
+		alertDuration := duration - time.Duration(timeToAlert)*time.Minute
+		if alertDuration > 0 {
+			timeToAlert := timeToAlert
+			go func() {
+				select {
+				case <-ctx.Done():
+				case <-time.After(alertDuration):
+					msg := fmt.Sprintf("Shutting down in %d minutes", timeToAlert)
+					log.Println(msg)
+					s.c <- msg
+				}
+			}()
 		}
 	}
 
-	if duration > 0 {
-		log.Printf("Shutting down in %v", duration)
-		time.Sleep(duration)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		log.Println("Shutting down now")
+		return s.shutdown()
 	}
-
-	log.Println("Shutting down now")
-	return s.shutdown()
 }
 
 var _ ShutdownPolicy = &ShutdownPolicyImpl{}

@@ -1,12 +1,15 @@
-[
-  {
-    "name": "example1.exe",
-    "allowed_from": "09:00",
-    "allowed_to": "10:00"
-  },
-  {
-    "name": "example2.exe",
-    "allowed_from": "14:00",
-    "allowed_to": "15:20"
-  }
-]
+{
+  "apps":  [
+      {
+        "name": "example1.exe",
+        "allowed_from": "09:00",
+        "allowed_to": "10:00"
+      },
+      {
+        "name": "example2.exe",
+        "allowed_from": "14:00",
+        "allowed_to": "23:30"
+      }
+  ],
+  "shutdown": "23:59"
+}

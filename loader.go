@@ -8,23 +8,23 @@ import (
 type Loader struct {
 }
 
-func (l *Loader) Load(path string) ([]AppConfig, error) {
+func (l *Loader) Load(path string) (FileConfig, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return []AppConfig{}, err
+		return FileConfig{}, err
 	}
 	defer file.Close()
-	var appConfigs []AppConfig
+	var fileConfig FileConfig
 	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&appConfigs)
+	err = decoder.Decode(&fileConfig)
 	if err != nil {
-		return []AppConfig{}, err
+		return FileConfig{}, err
 	}
-	return appConfigs, err
+	return fileConfig, err
 }
 
-func (l *Loader) Save(path string, configs []AppConfig) error {
-	data, err := json.MarshalIndent(configs, "", "  ")
+func (l *Loader) Save(path string, config FileConfig) error {
+	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}

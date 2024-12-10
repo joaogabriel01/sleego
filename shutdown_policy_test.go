@@ -1,6 +1,7 @@
 package sleego
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -14,6 +15,8 @@ func (m *MockShutdown) Shutdown() error {
 	m.called = true
 	return nil
 }
+
+var ctxOk = context.Background()
 
 func TestShutdownPolicyImpl_Apply_ShutdownCalled(t *testing.T) {
 	mockShutdown := &MockShutdown{}
@@ -33,7 +36,7 @@ func TestShutdownPolicyImpl_Apply_ShutdownCalled(t *testing.T) {
 	t.Log(endTimeStr)
 	endTimeParsed, _ := time.Parse("15:04:05", endTimeStr)
 	go func() {
-		err := policy.Apply(endTimeParsed)
+		err := policy.Apply(ctxOk, endTimeParsed)
 		if err != nil {
 			t.Errorf("Apply returned error: %v", err)
 		}
@@ -62,7 +65,7 @@ func TestShutdownPolicyImpl_Apply_AlertSent(t *testing.T) {
 	// Set endTime to 2 minutes from now
 	endTime := time.Now().Add(2 * time.Minute)
 	go func() {
-		err := policy.Apply(endTime)
+		err := policy.Apply(ctxOk, endTime)
 		if err != nil {
 			t.Errorf("Apply returned error: %v", err)
 		}
@@ -95,7 +98,7 @@ func TestShutdownPolicyImpl_Apply_ShutdownError(t *testing.T) {
 
 	endTime := time.Now().Add(2 * time.Second)
 	go func() {
-		err := policy.Apply(endTime)
+		err := policy.Apply(ctxOk, endTime)
 		if err == nil {
 			t.Errorf("Expected error from shutdown, but got none")
 		}
@@ -106,4 +109,30 @@ func TestShutdownPolicyImpl_Apply_ShutdownError(t *testing.T) {
 	if mockShutdown.called {
 		t.Errorf("Shutdown should not have been called due to error")
 	}
+}
+
+func TestShutdownPolicyImpl_ContextCancelled(t *testing.T) {
+	mockShutdown := &MockShutdown{}
+	alertCh := make(chan string, 1)
+	timesToAlert := []int{1}
+
+	policy := &ShutdownPolicyImpl{
+		shutdown: func() error {
+			return mockShutdown.Shutdown()
+		},
+		c:            alertCh,
+		timesToAlert: timesToAlert,
+	}
+	ctx, cancel := context.WithCancel(ctxOk)
+	cancel()
+	endTime := time.Now().Add(2 * time.Second)
+	go func() {
+		err := policy.Apply(ctx, endTime)
+		if err == nil {
+			t.Errorf("Expected error from context cancellation, but got none")
+		}
+	}()
+
+	// Cancel context
+	time.Sleep(1 * time.Second)
 }

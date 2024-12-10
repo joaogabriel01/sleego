@@ -65,7 +65,7 @@ func TestEnforceProcessPolicy_KillProcessAndVerifyChannel(t *testing.T) {
 
 	select {
 	case alert := <-ch:
-		if alert != "Killing process: Notepad" {
+		if alert != "Killing process: Notepad, PID: 1234" {
 			t.Errorf("Expected alert to be 'Killing process: Notepad', got %s", alert)
 		}
 	default:
