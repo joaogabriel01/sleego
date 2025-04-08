@@ -13,6 +13,8 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/joaogabriel01/sleego"
+
+	_ "embed"
 )
 
 type AppEntry struct {
@@ -34,6 +36,9 @@ var (
 	entries           []AppEntry
 	appsContainer     *fyne.Container
 	shutdownTimeEntry *widget.Entry
+
+	//go:embed assets/sleego_icon.png
+	iconData []byte
 )
 
 func main() {
@@ -50,12 +55,9 @@ func main() {
 
 func initializeApp() {
 	a = app.NewWithID("sleego.gui")
+	icon := fyne.NewStaticResource("icon.png", iconData)
+	a.SetIcon(icon)
 	w = a.NewWindow("Configuration")
-	icon, err := fyne.LoadResourceFromPath("images/sleego_icon.png")
-	if err != nil {
-		log.Fatalf("Error loading icon: %v", err)
-	}
-	w.SetIcon(icon)
 }
 
 func setupTrayIcon() {

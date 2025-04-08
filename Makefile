@@ -3,7 +3,7 @@ BUILD_DIR = ../../bin
 
 GUI_DIR = ./cmd/gui
 
-ICON = ../../images/sleego_icon.png
+ICON = ./assets/sleego_icon.png
 
 .PHONY: fyne_deps cli linux_gui windows_gui clean
 
@@ -11,7 +11,7 @@ fyne_deps:
 	@echo "Installing Fyne dependencies..."
 	go get fyne.io/fyne/v2
 	go install fyne.io/fyne/v2/cmd/fyne@latest
-
+	export PATH=$PATH:$(go env GOPATH)/bin
 
 cli: 
 	@echo "Compiling CLI version..."
@@ -19,7 +19,11 @@ cli:
 
 linux_gui: fyne_deps
 	@echo "Compiling GUI version for Linux..."
-	fyne package -os linux -icon $(ICON) -name $(APP_NAME)_gui -executable $(BUILD_DIR)/$(APP_NAME)_gui -sourceDir $(GUI_DIR)
+	fyne package -os linux -icon $(ICON) -name $(APP_NAME)_gui -sourceDir ./cmd/gui
+	mkdir -p sleego_gui && tar -xf sleego_gui.tar.xz -C sleego_gui && rm -rf sleego_gui.tar.xz
+	cp config.json sleego_gui/usr/local/bin/
+	sudo make -C sleego_gui install
+	
 
 windows_gui: fyne_deps 
 	@echo "Compiling GUI version for Windows..."
