@@ -18,11 +18,13 @@ cli:
 	go build -o $(BUILD_DIR)/$(APP_NAME) ./cmd/cli
 
 linux_gui: fyne_deps
+	sudo apt-get install libgl1-mesa-dev xorg-dev libxkbcommon-dev
 	@echo "Compiling GUI version for Linux..."
 	fyne package -os linux -icon $(ICON) -name $(APP_NAME)_gui -sourceDir ./cmd/gui
 	mkdir -p sleego_gui && tar -xf sleego_gui.tar.xz -C sleego_gui && rm -rf sleego_gui.tar.xz
-	cp config.json sleego_gui/usr/local/bin/
 	sudo make -C sleego_gui install
+	mkdir -p $(HOME)/.config/sleego
+	cp config.json $(HOME)/.config/sleego/config.json
 	
 
 windows_gui: fyne_deps 

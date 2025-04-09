@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -30,7 +32,7 @@ var (
 	ctx               context.Context
 	cancel            context.CancelFunc
 	loader            sleego.Loader
-	configPath        = "./config.json"
+	configPath        string
 	fileConfig        sleego.FileConfig
 	appConfigs        []sleego.AppConfig
 	entries           []AppEntry
@@ -45,12 +47,23 @@ func main() {
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
+	parseFlags()
+
 	initializeApp()
 	setupTrayIcon()
 	setupWindow()
 	loadConfigurations()
 	createUI()
 	w.ShowAndRun()
+}
+
+func parseFlags() {
+	configUser, err := os.UserConfigDir()
+	if err != nil {
+		log.Fatalf("Error getting user config directory: %v", err)
+	}
+	configPath = *flag.String("config", configUser+"/sleego/config.json", "Path to config file")
+	flag.Parse()
 }
 
 func initializeApp() {
