@@ -10,7 +10,8 @@ ICON = ./assets/sleego_icon.png
 debian_deps:
 	sudo apt-get install libgl1-mesa-dev xorg-dev libxkbcommon-dev
 
-fyne_deps:
+
+fyne_deps_linux:
 	@if command -v fyne >/dev/null 2>&1; then \
 		echo "Fyne dependencies already installed."; \
 	else \
@@ -20,13 +21,21 @@ fyne_deps:
 		export PATH=$$PATH:$(go env GOPATH)/bin; \
 	fi
 
+fyne_deps_windows:
+	@where fyne >nul 2>nul && (echo Fyne dependencies already installed.) || ( \
+		echo Installing Fyne dependencies for Windows... & \
+		go get fyne.io/fyne/v2 & \
+		go install fyne.io/fyne/v2/cmd/fyne@latest & \
+		set "PATH=%PATH%;$(shell go env GOPATH)/bin" \
+	)
+
 cli: 
 	@echo "Compiling CLI version..."
 	go build -o $(BUILD_DIR)/$(APP_NAME) ./cmd/cli
 
 
 
-linux_gui: fyne_deps
+linux_gui: fyne_deps_windows
 	@if command -v $(APP_NAME) >/dev/null 2>&1; then \
 		printf "%s already installed. Aborting.\n" "$(APP_NAME)" >&2; \
 		exit 1; \
@@ -40,7 +49,7 @@ linux_gui: fyne_deps
 	cp config.json $(HOME)/.config/$(APP_NAME)/config.json
 	
 
-windows_gui: fyne_deps 
+windows_gui: fyne_deps_windows 
 	@echo "Compiling GUI version for Windows..."
 	fyne package -os windows -icon $(ICON) -name $(APP_NAME)_gui -executable $(BUILD_DIR)/$(APP_NAME)_gui.exe -sourceDir $(GUI_DIR)
 
