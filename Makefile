@@ -3,8 +3,12 @@ BUILD_DIR = ../../bin
 
 GUI_DIR = ./cmd/gui
 
-ICON = ./assets/sleego_icon.png
+ICON = ./assets/sleego.ico
 
+ifeq ($(OS),Windows_NT)
+	SHELL := cmd
+	.SHELLFLAGS := /C
+endif
 .PHONY: fyne_deps cli linux_gui windows_gui clean
 
 debian_deps:
@@ -35,7 +39,7 @@ cli:
 
 
 
-linux_gui: fyne_deps_windows
+linux_gui_bin: fyne_deps_windows
 	@if command -v $(APP_NAME) >/dev/null 2>&1; then \
 		printf "%s already installed. Aborting.\n" "$(APP_NAME)" >&2; \
 		exit 1; \
@@ -49,9 +53,11 @@ linux_gui: fyne_deps_windows
 	cp config.json $(HOME)/.config/$(APP_NAME)/config.json
 	
 
-windows_gui: fyne_deps_windows 
+windows_gui_bin: fyne_deps_windows 
 	@echo "Compiling GUI version for Windows..."
 	fyne package -os windows -icon $(ICON) -name $(APP_NAME)_gui -executable $(BUILD_DIR)/$(APP_NAME)_gui.exe -sourceDir $(GUI_DIR)
+	@if not exist "%APPDATA%\$(APP_NAME)" mkdir "%APPDATA%\$(APP_NAME)"
+	@copy /Y config.json "%APPDATA%\$(APP_NAME)\config.json"
 
 clean:
 	@echo "Cleaning build directory..."
