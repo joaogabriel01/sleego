@@ -1,5 +1,8 @@
 # Sleego
 
+
+![Sleego](images\sleego_doc.png)  
+
 **Sleego** is a Go application designed to monitor and control the execution of processes based on specified schedules. It allows you to configure time restrictions for applications, forcefully terminating those running outside their permitted hours. Additionally, Sleego supports scheduled system shutdowns.
 
 ## Table of Contents
@@ -108,22 +111,13 @@ If you prefer to run Sleego from source (for development, customization, or non-
     ```bash
     go mod tidy
     ```
-3. **Build using Go**:
-    - **CLI Version**:
-      ```bash
-      go build -o sleego_cli ./cmd/cli/main.go
-      ```
-    - **GUI Version**:
-      ```bash
-      go build -o sleego_gui ./cmd/gui/main.go
-      ```
 
 **Using the Makefile:**  
 A Makefile is included to streamline the build process. For example:
 ```bash
 make cli
-make linux_gui
-make windows_gui
+make linux_gui_bin
+make windows_gui_bin
 ```
 `make clean` removes build artifacts.
 
