@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -13,6 +15,8 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/joaogabriel01/sleego"
+
+	_ "embed"
 )
 
 type AppEntry struct {
@@ -28,17 +32,22 @@ var (
 	ctx               context.Context
 	cancel            context.CancelFunc
 	loader            sleego.Loader
-	configPath        = "./config.json"
+	configPath        string
 	fileConfig        sleego.FileConfig
 	appConfigs        []sleego.AppConfig
 	entries           []AppEntry
 	appsContainer     *fyne.Container
 	shutdownTimeEntry *widget.Entry
+
+	//go:embed assets/sleego.ico
+	iconData []byte
 )
 
 func main() {
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
+
+	parseFlags()
 
 	initializeApp()
 	setupTrayIcon()
@@ -48,14 +57,20 @@ func main() {
 	w.ShowAndRun()
 }
 
+func parseFlags() {
+	configUser, err := os.UserConfigDir()
+	if err != nil {
+		log.Fatalf("Error getting user config directory: %v", err)
+	}
+	configPath = *flag.String("config", configUser+"/sleego/config.json", "Path to config file")
+	flag.Parse()
+}
+
 func initializeApp() {
 	a = app.NewWithID("sleego.gui")
+	icon := fyne.NewStaticResource("icon.png", iconData)
+	a.SetIcon(icon)
 	w = a.NewWindow("Configuration")
-	icon, err := fyne.LoadResourceFromPath("images/sleego_icon.png")
-	if err != nil {
-		log.Fatalf("Error loading icon: %v", err)
-	}
-	w.SetIcon(icon)
 }
 
 func setupTrayIcon() {
