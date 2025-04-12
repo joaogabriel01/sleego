@@ -1,7 +1,7 @@
 # Sleego
 
 
-![Sleego](images\sleego_doc.png)  
+![Sleego](images/sleego_doc.png)  
 
 **Sleego** is a Go application designed to monitor and control the execution of processes based on specified schedules. It allows you to configure time restrictions for applications, forcefully terminating those running outside their permitted hours. Additionally, Sleego supports scheduled system shutdowns.
 
