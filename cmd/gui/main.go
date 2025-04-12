@@ -39,7 +39,7 @@ var (
 	appsContainer     *fyne.Container
 	shutdownTimeEntry *widget.Entry
 
-	//go:embed assets/sleego_icon.png
+	//go:embed assets/sleego.ico
 	iconData []byte
 )
 
