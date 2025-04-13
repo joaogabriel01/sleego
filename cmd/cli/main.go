@@ -19,7 +19,7 @@ func main() {
 	fmt.Println("Log level set to:", *logLevel)
 
 	if *logLevel != "debug" && *logLevel != "info" && *logLevel != "warn" && *logLevel != "error" {
-		log.Fatalf("Invalid log level: %s", logLevel)
+		*logLevel = "info"
 	}
 
 	logger.Init(*logLevel)

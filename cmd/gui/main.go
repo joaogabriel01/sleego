@@ -76,14 +76,14 @@ func parseFlags() {
 	configPathP := flag.String("config", configUser+"/sleego/config.json", "Path to config file")
 
 	logLevelP := flag.String("loglevel", "info", "Log level (debug, info, warn, error)")
-	if logLevel != "debug" && logLevel != "info" && logLevel != "warn" && logLevel != "error" {
-		log.Fatalf("Invalid log level: %s", logLevel)
-	}
 
 	flag.Parse()
 
 	configPath = *configPathP
 	logLevel = *logLevelP
+	if logLevel != "debug" && logLevel != "info" && logLevel != "warn" && logLevel != "error" {
+		logLevel = "info"
+	}
 }
 
 func initializeApp() {
