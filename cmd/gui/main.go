@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	_ "embed"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -15,8 +17,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 	"github.com/joaogabriel01/sleego"
-
-	_ "embed"
+	"github.com/joaogabriel01/sleego/internal/logger"
 )
 
 type AppEntry struct {
@@ -33,6 +34,8 @@ var (
 	cancel            context.CancelFunc
 	loader            sleego.Loader
 	configPath        string
+	logLevel          string
+	loggerInstance    logger.Logger
 	fileConfig        sleego.FileConfig
 	appConfigs        []sleego.AppConfig
 	entries           []AppEntry
@@ -49,6 +52,14 @@ func main() {
 
 	parseFlags()
 
+	logger.Init(logLevel)
+
+	var err error
+	loggerInstance, err = logger.Get()
+	if err != nil {
+		log.Fatalf("Error getting logger instance: %v", err)
+	}
+
 	initializeApp()
 	setupTrayIcon()
 	setupWindow()
@@ -62,8 +73,17 @@ func parseFlags() {
 	if err != nil {
 		log.Fatalf("Error getting user config directory: %v", err)
 	}
-	configPath = *flag.String("config", configUser+"/sleego/config.json", "Path to config file")
+	configPathP := flag.String("config", configUser+"/sleego/config.json", "Path to config file")
+
+	logLevelP := flag.String("loglevel", "info", "Log level (debug, info, warn, error)")
+
 	flag.Parse()
+
+	configPath = *configPathP
+	logLevel = *logLevelP
+	if logLevel != "debug" && logLevel != "info" && logLevel != "warn" && logLevel != "error" {
+		logLevel = "info"
+	}
 }
 
 func initializeApp() {
@@ -109,7 +129,8 @@ func loadConfigurations() {
 	var err error
 	fileConfig, err = loader.Load(configPath)
 	if err != nil {
-		log.Fatalf("Error loading configurations: %v", err)
+		loggerInstance.Error("Error loading configurations: " + err.Error())
+		dialog.ShowError(fmt.Errorf("error loading configurations: %v", err), w)
 	}
 	appConfigs = fileConfig.Apps
 }
@@ -204,12 +225,13 @@ func saveConfigurations() {
 	}
 
 	if err := loader.Save(configPath, updatedConfigs); err != nil {
-		log.Printf("Error saving the configuration file: %v", err)
+		loggerInstance.Error("Error saving the configuration file: " + err.Error())
+		dialog.ShowError(fmt.Errorf("error saving the configuration file: %v", err), w)
 		return
 	}
 	fileConfig = updatedConfigs
 	dialog.ShowInformation("Success", "Configurations saved successfully!", w)
-	log.Println("Configurations saved successfully!")
+	loggerInstance.Info("Configurations saved successfully!")
 }
 
 func runPolicies() {
@@ -218,12 +240,13 @@ func runPolicies() {
 	monitor := &sleego.ProcessorMonitorImpl{}
 	processChan := make(chan string)
 	policy := sleego.NewProcessPolicyImpl(monitor, nil, processChan)
-	log.Printf("Starting process policy with config: %+v of path: %s", fileConfig.Apps, configPath)
+	loggerInstance.Debug(fmt.Sprintf("Starting process policy with config: %+v of path: %s", fileConfig, configPath))
 	dialog.ShowInformation("Running", "Applying the policy...", w)
 
 	go func() {
 		if err := policy.Apply(ctx, fileConfig.Apps); err != nil {
-			log.Printf("Error applying the policy: %v", err)
+			loggerInstance.Error("Error applying the process policy: " + err.Error())
+			dialog.ShowError(fmt.Errorf("error applying the process policy: %v", err), w)
 		}
 	}()
 
@@ -244,14 +267,15 @@ func runPolicies() {
 		dialog.ShowError(fmt.Errorf("invalid shutdown time format"), w)
 		return
 	}
-	log.Printf("Starting shutdown policy with time: %s", shutdownTimeStr)
+
+	loggerInstance.Info("Starting shutdown policy with time:" + shutdownTimeStr)
 	channelToAlert := make(chan string)
 	alerts := []int{10, 3, 1}
 	shutdownPolicy := sleego.NewShutdownPolicyImpl(channelToAlert, alerts)
 
 	go func() {
 		if err := shutdownPolicy.Apply(ctx, shutdownTime); err != nil {
-			log.Printf("Error applying the shutdown policy: %v", err)
+			loggerInstance.Error("Error applying the shutdown policy: " + err.Error())
 		}
 	}()
 

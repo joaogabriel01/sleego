@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/joaogabriel01/sleego/internal/logger"
 )
 
 type MockShutdown struct {
@@ -29,6 +31,7 @@ func TestShutdownPolicyImpl_Apply_ShutdownCalled(t *testing.T) {
 		},
 		c:            alertCh,
 		timesToAlert: timesToAlert,
+		logger:       logger.NewLoggerMock(),
 	}
 
 	endTime := time.Now().Add(3 * time.Second)
@@ -60,6 +63,7 @@ func TestShutdownPolicyImpl_Apply_AlertSent(t *testing.T) {
 		},
 		c:            alertCh,
 		timesToAlert: timesToAlert,
+		logger:       logger.NewLoggerMock(),
 	}
 
 	// Set endTime to 2 minutes from now
@@ -94,6 +98,7 @@ func TestShutdownPolicyImpl_Apply_ShutdownError(t *testing.T) {
 		},
 		c:            alertCh,
 		timesToAlert: timesToAlert,
+		logger:       logger.NewLoggerMock(),
 	}
 
 	endTime := time.Now().Add(2 * time.Second)
@@ -122,6 +127,7 @@ func TestShutdownPolicyImpl_ContextCancelled(t *testing.T) {
 		},
 		c:            alertCh,
 		timesToAlert: timesToAlert,
+		logger:       logger.NewLoggerMock(),
 	}
 	ctx, cancel := context.WithCancel(ctxOk)
 	cancel()
