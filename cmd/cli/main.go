@@ -50,4 +50,6 @@ func main() {
 	go appPolicy.Apply(ctx, config.Apps)
 	go shutdownPolicy.Apply(ctx, shutdownTime)
 
+	select {}
+
 }
