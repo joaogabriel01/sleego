@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/joaogabriel01/sleego/internal/logger"
 )
 
 // Time to sleep between checks
@@ -29,7 +31,9 @@ func NewProcessPolicyImpl(monitor ProcessorMonitor, now func() time.Time, alert 
 func (p *ProcessPolicyImpl) Apply(ctx context.Context, appsConfig []AppConfig) error {
 	for {
 		if ctx.Err() != nil {
-			log.Println("Context cancelled, stopping process policy")
+
+			logger.LoggerInstance.Info().Msg("Context cancelled, stopping process policy")
+
 			return nil
 		}
 		p.enforceProcessPolicy(appsConfig)

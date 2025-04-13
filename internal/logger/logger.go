@@ -7,6 +7,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var LoggerInstance = Get()
+
 func Init(logLevel string) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 
