@@ -4,23 +4,31 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os/exec"
 	"runtime"
 	"time"
+
+	"github.com/joaogabriel01/sleego/internal/logger"
 )
 
 type ShutdownPolicyImpl struct {
 	shutdown     func() error
 	c            chan string
 	timesToAlert []int
+	logger       logger.Logger
 }
 
 func NewShutdownPolicyImpl(c chan string, timesToAlert []int) ShutdownPolicy {
+	logger, err := logger.Get()
+	if err != nil {
+		panic(fmt.Sprintf("failed to get logger: %v", err))
+	}
+
 	return &ShutdownPolicyImpl{
 		shutdown:     shutdown,
 		c:            c,
 		timesToAlert: timesToAlert,
+		logger:       logger,
 	}
 }
 
@@ -35,11 +43,11 @@ func (s *ShutdownPolicyImpl) Apply(ctx context.Context, endTime time.Time) error
 
 	duration := time.Until(shutdownTime)
 	if duration <= 0 {
-		log.Println("Shutting down now")
+		s.logger.Debug("Shutting down now")
 		return s.shutdown()
 	}
 
-	log.Printf("Shutting down scheduled in %v", duration)
+	s.logger.Info(fmt.Sprintf("Shutting down scheduled in %v", duration))
 
 	timer := time.NewTimer(duration)
 	defer timer.Stop()
@@ -53,7 +61,7 @@ func (s *ShutdownPolicyImpl) Apply(ctx context.Context, endTime time.Time) error
 				case <-ctx.Done():
 				case <-time.After(alertDuration):
 					msg := fmt.Sprintf("Shutting down in %d minutes", timeToAlert)
-					log.Println(msg)
+					s.logger.Debug(msg)
 					s.c <- msg
 				}
 			}()
@@ -64,7 +72,7 @@ func (s *ShutdownPolicyImpl) Apply(ctx context.Context, endTime time.Time) error
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-timer.C:
-		log.Println("Shutting down now")
+		s.logger.Debug("Shutting down now")
 		return s.shutdown()
 	}
 }
