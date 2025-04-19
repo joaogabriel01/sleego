@@ -20,16 +20,16 @@ fyne_deps_linux:
 		echo "Fyne dependencies already installed."; \
 	else \
 		echo "Instalando Fyne dependencies..."; \
-		go get fyne.io/fyne/v2; \
-		go install fyne.io/fyne/v2/cmd/fyne@latest; \
+		go get fyne.io/fyne/v2@v2.5.5; \
+		go install fyne.io/fyne/v2/cmd/fyne@v2.5.5; \
 		export PATH=$$PATH:$(go env GOPATH)/bin; \
 	fi
 
 fyne_deps_windows:
 	@where fyne >nul 2>nul && (echo Fyne dependencies already installed.) || ( \
 		echo Installing Fyne dependencies for Windows... & \
-		go get fyne.io/fyne/v2 & \
-		go install fyne.io/fyne/v2/cmd/fyne@latest & \
+		go get fyne.io/fyne/v2@v2.5.5; \
+		go install fyne.io/fyne/v2/cmd/fyne@v2.5.5; \
 		set "PATH=%PATH%;$(shell go env GOPATH)/bin" \
 	)
 
