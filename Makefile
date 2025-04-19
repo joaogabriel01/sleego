@@ -39,7 +39,7 @@ cli:
 
 
 
-linux_gui_bin: fyne_deps_windows
+linux_gui_bin: fyne_deps_linux
 	@if command -v $(APP_NAME) >/dev/null 2>&1; then \
 		printf "%s already installed. Aborting.\n" "$(APP_NAME)" >&2; \
 		exit 1; \
