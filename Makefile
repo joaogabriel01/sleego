@@ -52,6 +52,14 @@ linux_gui_bin: fyne_deps_linux
 	mkdir -p $(HOME)/.config/$(APP_NAME)
 	cp config.json $(HOME)/.config/$(APP_NAME)/config.json
 	
+linux_gui_remove:
+	@echo "Removing GUI version for Linux..."
+	sudo make -C $(APP_NAME)_gui uninstall
+	rm -rf $(HOME)/.config/$(APP_NAME)
+	rm -rf $(APP_NAME)_gui
+	@echo "Removing GUI version for Linux... done."
+
+
 
 windows_gui_bin: fyne_deps_windows 
 	@echo "Compiling GUI version for Windows..."
