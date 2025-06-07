@@ -44,7 +44,6 @@ linux_gui_bin: fyne_deps_linux
 		printf "%s already installed. Aborting.\n" "$(APP_NAME)" >&2; \
 		exit 1; \
 	fi
-	
 	@echo "Compiling GUI version for Linux..."
 	fyne package -os linux -icon $(ICON) -name $(APP_NAME)_gui -executable $(APP_NAME) -sourceDir $(GUI_DIR)
 	mkdir -p $(APP_NAME)_gui && tar -xf $(APP_NAME)_gui.tar.xz -C $(APP_NAME)_gui && rm -rf $(APP_NAME)_gui.tar.xz
@@ -59,6 +58,13 @@ linux_gui_remove:
 	rm -rf $(APP_NAME)_gui
 	@echo "Removing GUI version for Linux... done."
 
+linux_gui_rebin:
+	@echo "Reinstalling GUI version for Linux..." && \
+	$(MAKE) linux_gui_remove && \
+	$(MAKE) linux_gui_bin
+
+sleego_debug:
+	sleego -loglevel=debug
 
 
 windows_gui_bin: fyne_deps_windows 
