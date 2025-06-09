@@ -6,7 +6,8 @@ import (
 
 // This is the adapter to the Process interface from the gopsutil library
 type ProcessImpl struct {
-	proc *process.Process
+	proc             *process.Process
+	categoryOperator CategoryOperator
 }
 
 func (p *ProcessImpl) GetInfo() (ProcessInfo, error) {
@@ -15,6 +16,13 @@ func (p *ProcessImpl) GetInfo() (ProcessInfo, error) {
 		return ProcessInfo{}, err
 	}
 	pid := int(p.proc.Pid)
+	if p.categoryOperator != nil {
+		categories := p.categoryOperator.GetCategoriesOf(name)
+		if len(categories) != 0 {
+			return ProcessInfo{Name: name, Pid: pid, Category: categories}, nil
+		}
+	}
+
 	return ProcessInfo{Name: name, Pid: pid}, nil
 }
 
@@ -33,9 +41,16 @@ func (p *ProcessorMonitorImpl) GetRunningProcesses() ([]Process, error) {
 	}
 	processes := make([]Process, 0, len(procs))
 	for _, proc := range procs {
-		processes = append(processes, &ProcessImpl{proc: proc})
+		processes = append(processes, newProcessWithCategoryOperator(proc))
 	}
 	return processes, nil
+}
+
+func newProcessWithCategoryOperator(proc *process.Process) *ProcessImpl {
+	return &ProcessImpl{
+		proc:             proc,
+		categoryOperator: GetCategoryOperator(),
+	}
 }
 
 var _ Process = &ProcessImpl{}

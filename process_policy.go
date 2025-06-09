@@ -13,14 +13,15 @@ const sleepTime = 5 * time.Second
 
 // ProcessPolicyImpl is the implementation of the ProcessPolicy interface
 type ProcessPolicyImpl struct {
-	monitor ProcessorMonitor
-	now     func() time.Time
-	alertCh chan string
-	logger  logger.Logger
+	monitor          ProcessorMonitor
+	categoryOperator CategoryOperator
+	now              func() time.Time
+	alertCh          chan string
+	logger           logger.Logger
 }
 
 // NewProcessPolicyImpl creates a new ProcessPolicyImpl
-func NewProcessPolicyImpl(monitor ProcessorMonitor, now func() time.Time, alert chan string) *ProcessPolicyImpl {
+func NewProcessPolicyImpl(monitor ProcessorMonitor, categoryOperator CategoryOperator, now func() time.Time, alert chan string) *ProcessPolicyImpl {
 	if now == nil {
 		now = time.Now
 	}
@@ -28,7 +29,7 @@ func NewProcessPolicyImpl(monitor ProcessorMonitor, now func() time.Time, alert 
 	if err != nil {
 		panic(fmt.Sprintf("failed to get logger: %v", err))
 	}
-	return &ProcessPolicyImpl{monitor: monitor, now: now, alertCh: alert, logger: logger}
+	return &ProcessPolicyImpl{monitor: monitor, categoryOperator: categoryOperator, now: now, alertCh: alert, logger: logger}
 }
 
 // Apply will check the running processes and kill the ones that are not allowed to run
@@ -59,7 +60,7 @@ func (p *ProcessPolicyImpl) enforceProcessPolicy(appsConfig []AppConfig) {
 
 		p.logger.Debug(fmt.Sprintf("Checking process: %s, PID: %d", info.Name, info.Pid))
 		for _, appConfig := range appsConfig {
-			if info.Name == appConfig.Name {
+			if info.Name == appConfig.Name || (p.categoryOperator != nil && existElementInSlice(p.categoryOperator.GetCategoriesOf(info.Name), appConfig.Name)) {
 
 				// Check if the process is running outside the allowed hours
 				if !p.isAllowedToRun(appConfig) {
@@ -110,6 +111,15 @@ func (p *ProcessPolicyImpl) isAllowedToRun(appConfig AppConfig) bool {
 		}
 	}
 	return true
+}
+
+func existElementInSlice(slice []string, element string) bool {
+	for _, item := range slice {
+		if item == element {
+			return true
+		}
+	}
+	return false
 }
 
 var _ ProcessPolicy = &ProcessPolicyImpl{}

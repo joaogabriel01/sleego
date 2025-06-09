@@ -32,6 +32,18 @@ func (m *MockProcessorMonitor) GetRunningProcesses() ([]Process, error) {
 	return m.processes, nil
 }
 
+type MockCategoryOperator struct{}
+
+func (m *MockCategoryOperator) GetCategoriesOf(processName string) []string {
+	return []string{"MockCategory"}
+}
+
+func (m *MockCategoryOperator) SetProcessByCategories(categoriesByProcess map[string][]string) {
+	// Mock implementation does nothing
+}
+
+var mockCategoryOperator = &MockCategoryOperator{}
+
 // *************** TESTS *************** //
 
 // TestEnforceProcessPolicy tests the Apply method
@@ -60,7 +72,7 @@ func TestEnforceProcessPolicy_KillProcessAndVerifyChannel(t *testing.T) {
 	}
 
 	ch := make(chan string, 1)
-	policy := NewProcessPolicyImpl(mockMonitor, mockNow, ch)
+	policy := NewProcessPolicyImpl(mockMonitor, mockCategoryOperator, mockNow, ch)
 	policy.enforceProcessPolicy(appsConfig)
 
 	select {
@@ -101,7 +113,7 @@ func TestEnforceProcessPolicy_DoNotKillProcess(t *testing.T) {
 		return time.Date(2023, 10, 10, 12, 0, 0, 0, time.UTC) // 12:00 UTC on October 10, 2023
 	}
 
-	policy := NewProcessPolicyImpl(mockMonitor, mockNow, nil)
+	policy := NewProcessPolicyImpl(mockMonitor, mockCategoryOperator, mockNow, nil)
 	policy.enforceProcessPolicy(appsConfig)
 
 	if mockProcess.killed {
@@ -133,7 +145,7 @@ func TestEnforceProcessPolicy_ProcessNotInConfig(t *testing.T) {
 		return time.Date(2023, 10, 10, 15, 0, 0, 0, time.UTC)
 	}
 
-	policy := NewProcessPolicyImpl(mockMonitor, mockNow, nil)
+	policy := NewProcessPolicyImpl(mockMonitor, categoryOperator, mockNow, nil)
 	policy.enforceProcessPolicy(appsConfig)
 
 	if mockProcess.killed {
@@ -147,7 +159,7 @@ func TestIsAllowedToRun_InvalidTimeFormat(t *testing.T) {
 		AllowedTo:   "invalid",
 	}
 
-	policy := NewProcessPolicyImpl(nil, nil, nil)
+	policy := NewProcessPolicyImpl(nil, nil, nil, nil)
 	result := policy.isAllowedToRun(appConfig)
 
 	if result {
@@ -161,7 +173,7 @@ func TestIsAllowedToRun_EmptyTimes(t *testing.T) {
 		AllowedTo:   "",
 	}
 
-	policy := NewProcessPolicyImpl(nil, nil, nil)
+	policy := NewProcessPolicyImpl(nil, nil, nil, nil)
 	result := policy.isAllowedToRun(appConfig)
 
 	if result {
@@ -193,7 +205,7 @@ func TestApply(t *testing.T) {
 		return time.Date(2023, 10, 10, 18, 0, 0, 0, time.UTC)
 	}
 
-	policy := NewProcessPolicyImpl(mockMonitor, mockNow, nil)
+	policy := NewProcessPolicyImpl(mockMonitor, nil, mockNow, nil)
 	ctx := context.Background()
 	go policy.Apply(ctx, appsConfig)
 
@@ -228,7 +240,7 @@ func TestApply_ProcessAllowed(t *testing.T) {
 		return time.Date(2023, 10, 10, 12, 0, 0, 0, time.UTC)
 	}
 
-	policy := NewProcessPolicyImpl(mockMonitor, mockNow, nil)
+	policy := NewProcessPolicyImpl(mockMonitor, nil, mockNow, nil)
 	ctx := context.Background()
 	go policy.Apply(ctx, appsConfig)
 
@@ -357,7 +369,7 @@ func TestIsAllowedToRun(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			policy := NewProcessPolicyImpl(nil, func() time.Time {
+			policy := NewProcessPolicyImpl(nil, nil, func() time.Time {
 				return tt.mockNow
 			}, nil)
 			result := policy.isAllowedToRun(tt.appConfig)
@@ -371,7 +383,7 @@ func TestIsAllowedToRun(t *testing.T) {
 // TestNewProcessPolicyImpl tests the NewProcessPolicyImpl constructor
 func TestNewProcessPolicyImpl(t *testing.T) {
 	mockMonitor := &MockProcessorMonitor{}
-	policy := NewProcessPolicyImpl(mockMonitor, nil, nil)
+	policy := NewProcessPolicyImpl(mockMonitor, nil, nil, nil)
 
 	if policy.monitor != mockMonitor {
 		t.Errorf("Expected monitor to be %v, got %v", mockMonitor, policy.monitor)
