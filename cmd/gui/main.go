@@ -73,10 +73,8 @@ func main() {
 
 	parseFlags()
 
-	logger.Init(logLevel)
-
 	var err error
-	loggerInstance, err = logger.Get()
+	loggerInstance, err = logger.Get(logLevel)
 	if err != nil {
 		log.Fatalf("Error getting logger instance: %v", err)
 	}

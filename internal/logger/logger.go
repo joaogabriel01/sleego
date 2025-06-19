@@ -23,14 +23,25 @@ type ZeroLogger struct {
 	output io.Writer
 }
 
-func Get() (Logger, error) {
+func Get(logLevel ...string) (Logger, error) {
 	if globalLogger != nil {
 		return globalLogger, nil
 	}
+
+	logLevelStr := "info"
+	if len(logLevel) > 0 {
+		logLevelStr = logLevel[0]
+	}
+
+	initLogger(logLevelStr)
+	if globalLogger != nil {
+		return globalLogger, nil
+	}
+
 	return nil, fmt.Errorf("global logger is not initialized")
 }
 
-func Init(logLevel string) {
+func initLogger(logLevel string) {
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "15:04:05"}
 
 	level, err := zerolog.ParseLevel(logLevel)
