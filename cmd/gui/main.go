@@ -4,14 +4,17 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"image/color"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	_ "embed"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/driver/desktop"
@@ -27,26 +30,44 @@ type AppEntry struct {
 	container        *fyne.Container
 }
 
+type CategoryEntry struct {
+	nameEntry *widget.Entry
+	appsEntry *widget.Entry
+	container *fyne.Container
+}
+
 var (
-	a                 fyne.App
-	w                 fyne.Window
-	ctx               context.Context
-	cancel            context.CancelFunc
-	loader            sleego.Loader
-	configPath        string
-	logLevel          string
-	loggerInstance    logger.Logger
-	fileConfig        sleego.FileConfig
-	appConfigs        []sleego.AppConfig
-	entries           []AppEntry
-	appsContainer     *fyne.Container
-	shutdownTimeEntry *widget.Entry
+	a                   fyne.App
+	w                   fyne.Window
+	ctx                 context.Context
+	cancel              context.CancelFunc
+	loader              sleego.Loader
+	configPath          string
+	logLevel            string
+	loggerInstance      logger.Logger
+	fileConfig          sleego.FileConfig
+	appConfigs          []sleego.AppConfig
+	entries             map[string]AppEntry
+	categoryEntries     map[string]CategoryEntry
+	appsContainer       *fyne.Container
+	categoriesContainer *fyne.Container
+	shutdownTimeEntry   *widget.Entry
+
+	screenSize       fyne.Size
+	applicationsSize fyne.Size
+	categoriesSize   fyne.Size
+
+	categoriesOperator sleego.CategoryOperator
 
 	//go:embed assets/sleego.ico
 	iconData []byte
 )
 
 func main() {
+	entries = make(map[string]AppEntry)
+	categoryEntries = make(map[string]CategoryEntry)
+	categoriesOperator = sleego.GetCategoryOperator()
+
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
@@ -64,7 +85,24 @@ func main() {
 	setupTrayIcon()
 	setupWindow()
 	loadConfigurations()
-	createUI()
+	root := container.NewStack()
+	root.Objects = []fyne.CanvasObject{createUI()}
+
+	w.SetContent(root)
+
+	go func() {
+		for {
+			time.Sleep(100 * time.Millisecond)
+			newSize := w.Canvas().Size()
+			if screenSize != newSize {
+				loggerInstance.Debug(fmt.Sprintf("Window size changed: %v", newSize))
+				screenSize = newSize
+				root.Objects = []fyne.CanvasObject{createUI()}
+				root.Refresh()
+			}
+		}
+	}()
+
 	w.ShowAndRun()
 }
 
@@ -90,7 +128,7 @@ func initializeApp() {
 	a = app.NewWithID("sleego.gui")
 	icon := fyne.NewStaticResource("icon.png", iconData)
 	a.SetIcon(icon)
-	w = a.NewWindow("Configuration")
+	w = a.NewWindow("Sleego")
 }
 
 func setupTrayIcon() {
@@ -118,9 +156,9 @@ func setupWindow() {
 	w.SetCloseIntercept(func() {
 		w.Hide()
 	})
-	screenSize := w.Canvas().Size()
+	screenSize = w.Canvas().Size()
 	if screenSize.Width == 0 || screenSize.Height == 0 {
-		screenSize = fyne.NewSize(800, 600)
+		screenSize = fyne.NewSize(1200, 700)
 	}
 	w.Resize(screenSize)
 }
@@ -135,15 +173,14 @@ func loadConfigurations() {
 	appConfigs = fileConfig.Apps
 }
 
-func createUI() {
-	appsContainer = container.NewVBox()
-	for _, config := range appConfigs {
-		addApp(config)
-	}
+func createUI() *fyne.Container {
 
-	addButton := widget.NewButton("Add", func() {
-		addApp(sleego.AppConfig{})
-	})
+	applicationsSize = fyne.NewSize(screenSize.Width*0.7, screenSize.Height*0.6)
+	categoriesSize = fyne.NewSize(screenSize.Width*0.7, screenSize.Height*0.6)
+
+	mainContent := buildAppContent()
+	categoryContent := buildCategoryContent()
+	tabs := setupTabs(mainContent, categoryContent)
 
 	shutdownTimeEntry = widget.NewEntry()
 	shutdownTimeEntry.SetPlaceHolder("Enter shutdown time (HH:MM)")
@@ -154,74 +191,81 @@ func createUI() {
 	saveButton := widget.NewButton("Save", saveConfigurations)
 	runButton := widget.NewButton("Run", runPolicies)
 
-	mainContainer := container.NewVBox(
-		appsContainer,
-		addButton,
-		saveButton,
+	runningProcess := container.NewVBox(
+		widget.NewLabel("Running Process"),
+		// will be updated with the running process
+	)
+
+	content := container.NewVBox(
+		container.NewHBox(
+			tabs,
+			runningProcess,
+		),
 		shutdownTimeEntry,
-		runButton,
+		container.NewHBox(
+			saveButton,
+			runButton,
+		),
 	)
+	return content
 
-	w.SetContent(container.NewScroll(mainContainer))
 }
 
-func addApp(config sleego.AppConfig) {
-	nameEntry := widget.NewEntry()
-	nameEntry.SetText(config.Name)
-
-	allowedFromEntry := widget.NewEntry()
-	allowedFromEntry.SetText(config.AllowedFrom)
-
-	allowedToEntry := widget.NewEntry()
-	allowedToEntry.SetText(config.AllowedTo)
-
-	index := len(entries)
-	removeBtn := widget.NewButton("Remove", func() {
-		removeEntry(index)
-	})
-
-	form := container.NewVBox(
-		widget.NewLabel("Name:"),
-		nameEntry,
-		widget.NewLabel("Allowed From:"),
-		allowedFromEntry,
-		widget.NewLabel("Allowed To:"),
-		allowedToEntry,
-		removeBtn,
-		widget.NewSeparator(),
+func newBox(content fyne.CanvasObject) *fyne.Container {
+	square := canvas.NewRectangle(color.Black)
+	context := container.NewStack(
+		square,
+		content,
 	)
-
-	appsContainer.Add(form)
-	appsContainer.Add(widget.NewLabel(""))
-
-	entries = append(entries, AppEntry{
-		nameEntry:        nameEntry,
-		allowedFromEntry: allowedFromEntry,
-		allowedToEntry:   allowedToEntry,
-		container:        form,
-	})
+	return context
 }
 
-func removeEntry(index int) {
-	entry := entries[index]
-	appsContainer.Remove(entry.container)
-	entries = append(entries[:index], entries[index+1:]...)
+func setupTabs(mainContent fyne.CanvasObject, categoryContent fyne.CanvasObject) *container.AppTabs {
+	mainBox := newBox(mainContent)
+	catBox := newBox(categoryContent)
+
+	mainScroll := container.NewScroll(mainBox)
+	mainScroll.SetMinSize(applicationsSize)
+
+	categoryScroll := container.NewScroll(catBox)
+	categoryScroll.SetMinSize(categoriesSize)
+
+	loggerInstance.Debug(fmt.Sprintf("Main scroll size: %v %v", applicationsSize.Width, applicationsSize.Height))
+	loggerInstance.Debug(fmt.Sprintf("Category scroll size: %v %v", categoriesSize.Width, categoriesSize.Height))
+
+	tabs := container.NewAppTabs(
+		container.NewTabItem("Applications", mainScroll),
+		container.NewTabItem("Categories", categoryScroll),
+	)
+	tabs.SetTabLocation(container.TabLocationTop)
+	return tabs
 }
 
 func saveConfigurations() {
 	updatedAppConfigs := make([]sleego.AppConfig, len(entries))
-	for i, entry := range entries {
-		updatedAppConfigs[i] = sleego.AppConfig{
+	for _, entry := range entries {
+		updatedAppConfigs = append(updatedAppConfigs, sleego.AppConfig{
 			Name:        entry.nameEntry.Text,
 			AllowedFrom: entry.allowedFromEntry.Text,
 			AllowedTo:   entry.allowedToEntry.Text,
+		})
+	}
+	categoriesConfig := make(map[string][]string)
+	for _, entry := range categoryEntries {
+		categoryName := entry.nameEntry.Text
+		appsText := entry.appsEntry.Text
+		if categoryName == "" || appsText == "" {
+			continue
 		}
+		categoriesConfig[categoryName] = strings.Split(appsText, ";")
+		loggerInstance.Debug(fmt.Sprintf("Category: %s, Apps: %v", categoryName, categoriesConfig[categoryName]))
 	}
 	shutdownConfig := shutdownTimeEntry.Text
 
 	updatedConfigs := sleego.FileConfig{
-		Apps:     updatedAppConfigs,
-		Shutdown: shutdownConfig,
+		Apps:       updatedAppConfigs,
+		Categories: categoriesConfig,
+		Shutdown:   shutdownConfig,
 	}
 
 	if err := loader.Save(configPath, updatedConfigs); err != nil {
@@ -230,6 +274,7 @@ func saveConfigurations() {
 		return
 	}
 	fileConfig = updatedConfigs
+	categoriesOperator.SetProcessByCategories(fileConfig.Categories)
 	dialog.ShowInformation("Success", "Configurations saved successfully!", w)
 	loggerInstance.Info("Configurations saved successfully!")
 }
@@ -237,9 +282,10 @@ func saveConfigurations() {
 func runPolicies() {
 	cancel()
 	ctx, cancel = context.WithCancel(context.Background())
+
 	monitor := &sleego.ProcessorMonitorImpl{}
 	processChan := make(chan string)
-	policy := sleego.NewProcessPolicyImpl(monitor, nil, processChan)
+	policy := sleego.NewProcessPolicyImpl(monitor, categoriesOperator, nil, processChan)
 	loggerInstance.Debug(fmt.Sprintf("Starting process policy with config: %+v of path: %s", fileConfig, configPath))
 	dialog.ShowInformation("Running", "Applying the policy...", w)
 

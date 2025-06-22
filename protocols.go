@@ -7,8 +7,9 @@ import (
 
 // FileConfig is the struct that will be used to store the configuration of the apps
 type FileConfig struct {
-	Apps     []AppConfig `json:"apps"`
-	Shutdown string      `json:"shutdown"`
+	Apps       []AppConfig         `json:"apps"`
+	Shutdown   string              `json:"shutdown"`
+	Categories map[string][]string `json:"categories"`
 }
 
 // AppConfig is the struct that will be used to store the configuration of each app
@@ -25,8 +26,9 @@ type ConfigLoader interface {
 
 // ProcessInfo contains the information of a process
 type ProcessInfo struct {
-	Name string
-	Pid  int
+	Name     string
+	Pid      int
+	Category []string
 }
 
 // Process defines the behavior of a process
@@ -48,4 +50,10 @@ type ProcessPolicy interface {
 // ShutdownPolicy defines the behavior for shutting down the system
 type ShutdownPolicy interface {
 	Apply(ctx context.Context, endTime time.Time) error
+}
+
+// CategoryOperator defines the behavior for managing categories of applications
+type CategoryOperator interface {
+	GetCategoriesOf(process string) []string
+	SetProcessByCategories(categoriesByProcess map[string][]string)
 }

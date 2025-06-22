@@ -35,7 +35,8 @@ func main() {
 	}
 
 	monitor := &sleego.ProcessorMonitorImpl{}
-	appPolicy := sleego.NewProcessPolicyImpl(monitor, nil, nil)
+	categoryOp := sleego.GetCategoryOperator()
+	appPolicy := sleego.NewProcessPolicyImpl(monitor, categoryOp, nil, nil)
 
 	shutdownChannel := make(chan string)
 	shutdownPolicy := sleego.NewShutdownPolicyImpl(shutdownChannel, []int{})

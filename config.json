@@ -11,5 +11,15 @@
         "allowed_to": "23:30"
       }
   ],
-  "shutdown": "23:59"
+  "shutdown": "23:59",
+  "categories": {
+    "games": [
+      "game1.exe",
+      "game2.exe"
+    ],
+    "browsers": [
+      "browser1.exe",
+      "browser2.exe"
+    ]
+  }
 }
