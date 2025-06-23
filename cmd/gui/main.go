@@ -58,6 +58,7 @@ var (
 	categoriesSize   fyne.Size
 
 	categoriesOperator sleego.CategoryOperator
+	monitor            sleego.ProcessorMonitor
 
 	//go:embed assets/sleego.ico
 	iconData []byte
@@ -67,16 +68,15 @@ func main() {
 	entries = make(map[string]AppEntry)
 	categoryEntries = make(map[string]CategoryEntry)
 	categoriesOperator = sleego.GetCategoryOperator()
+	monitor = &sleego.ProcessorMonitorImpl{}
 
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
 	parseFlags()
 
-	logger.Init(logLevel)
-
 	var err error
-	loggerInstance, err = logger.Get()
+	loggerInstance, err = logger.Get(logLevel)
 	if err != nil {
 		log.Fatalf("Error getting logger instance: %v", err)
 	}
@@ -89,6 +89,7 @@ func main() {
 	root.Objects = []fyne.CanvasObject{createUI()}
 
 	w.SetContent(root)
+	w.SetMainMenu(nil)
 
 	go func() {
 		for {
@@ -181,31 +182,33 @@ func createUI() *fyne.Container {
 	mainContent := buildAppContent()
 	categoryContent := buildCategoryContent()
 	tabs := setupTabs(mainContent, categoryContent)
-
 	shutdownTimeEntry = widget.NewEntry()
 	shutdownTimeEntry.SetPlaceHolder("Enter shutdown time (HH:MM)")
 	if fileConfig.Shutdown != "" {
 		shutdownTimeEntry.SetText(fileConfig.Shutdown)
 	}
 
-	saveButton := widget.NewButton("Save", saveConfigurations)
-	runButton := widget.NewButton("Run", runPolicies)
-
-	runningProcess := container.NewVBox(
-		widget.NewLabel("Running Process"),
-		// will be updated with the running process
+	shutdownContainer := container.NewVBox(
+		widget.NewLabel("Shutdown Time Configuration"),
+		shutdownTimeEntry,
 	)
+
+	buttonsContainer := container.NewHBox(
+		widget.NewLabel("Actions:"),
+		widget.NewButton("Save", saveConfigurations),
+		widget.NewButton("Run", runPolicies),
+	)
+
+	runningProcess := buildGetProcessContent(monitor)
 
 	content := container.NewVBox(
 		container.NewHBox(
 			tabs,
 			runningProcess,
 		),
-		shutdownTimeEntry,
-		container.NewHBox(
-			saveButton,
-			runButton,
-		),
+		shutdownContainer,
+		widget.NewSeparator(),
+		buttonsContainer,
 	)
 	return content
 
@@ -260,6 +263,7 @@ func saveConfigurations() {
 		categoriesConfig[categoryName] = strings.Split(appsText, ";")
 		loggerInstance.Debug(fmt.Sprintf("Category: %s, Apps: %v", categoryName, categoriesConfig[categoryName]))
 	}
+
 	shutdownConfig := shutdownTimeEntry.Text
 
 	updatedConfigs := sleego.FileConfig{
@@ -283,7 +287,6 @@ func runPolicies() {
 	cancel()
 	ctx, cancel = context.WithCancel(context.Background())
 
-	monitor := &sleego.ProcessorMonitorImpl{}
 	processChan := make(chan string)
 	policy := sleego.NewProcessPolicyImpl(monitor, categoriesOperator, nil, processChan)
 	loggerInstance.Debug(fmt.Sprintf("Starting process policy with config: %+v of path: %s", fileConfig, configPath))

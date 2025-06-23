@@ -22,8 +22,7 @@ func main() {
 		*logLevel = "info"
 	}
 
-	logger.Init(*logLevel)
-	loggerInstance, err := logger.Get()
+	loggerInstance, err := logger.Get(*logLevel)
 	if err != nil {
 		log.Fatalf("Error getting logger instance: %v", err)
 	}
