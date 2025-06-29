@@ -1,5 +1,11 @@
 package sleego
 
+// CategoryOperator defines the behavior for managing categories of applications
+type CategoryOperator interface {
+	GetCategoriesOf(process string) []string
+	SetProcessByCategories(categoriesByProcess map[string][]string)
+}
+
 var (
 	processByCategories map[string][]string
 	categoryOperator    *CategoryOperatorImpl
@@ -30,3 +36,5 @@ func GetCategoryOperator() *CategoryOperatorImpl {
 	}
 	return categoryOperator
 }
+
+var _ CategoryOperator = &CategoryOperatorImpl{}

@@ -8,6 +8,11 @@ import (
 	"github.com/joaogabriel01/sleego/internal/logger"
 )
 
+// ProcessPolicy controls when the application process will be terminated
+type ProcessPolicy interface {
+	Apply(ctx context.Context, appsConfig []AppConfig) error
+}
+
 // Time to sleep between checks
 const sleepTime = 5 * time.Second
 
