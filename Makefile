@@ -76,3 +76,8 @@ windows_gui_bin: fyne_deps_windows
 clean:
 	@echo "Cleaning build directory..."
 	rm -rf $(BUILD_DIR)
+
+test:
+	@echo "Running tests..."
+	go test -v ./...
+	
