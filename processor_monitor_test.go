@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/shirou/gopsutil/process"
+	"github.com/shirou/gopsutil/v4/process"
 )
 
 func TestProcessImpl_GetInfo(t *testing.T) {
