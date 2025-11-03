@@ -24,7 +24,13 @@ func newCategoryOperator() CategoryOperator {
 func (c *CategoryOperatorImpl) GetCategoriesOf(process string) []string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.processByCategories[process]
+	categories := c.processByCategories[process]
+	if categories == nil {
+		return nil
+	}
+	copied := make([]string, len(categories))
+	copy(copied, categories)
+	return copied
 }
 
 func (c *CategoryOperatorImpl) SetProcessByCategories(categoriesToProcesses map[string][]string) {
