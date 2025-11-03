@@ -1,8 +1,26 @@
 package sleego
 
 import (
-	"github.com/shirou/gopsutil/process"
+	"github.com/shirou/gopsutil/v4/process"
 )
+
+// Process defines the behavior of a process
+type Process interface {
+	GetInfo() (ProcessInfo, error)
+	Kill() error
+}
+
+// ProcessorMonitor will be used to interact with the system processes
+type ProcessorMonitor interface {
+	GetRunningProcesses() ([]Process, error)
+}
+
+// ProcessInfo contains the information of a process
+type ProcessInfo struct {
+	Name     string
+	Pid      int
+	Category []string
+}
 
 // This is the adapter to the Process interface from the gopsutil library
 type ProcessImpl struct {

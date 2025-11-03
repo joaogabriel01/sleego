@@ -5,6 +5,25 @@ import (
 	"os"
 )
 
+// ConfigLoader defines the behavior for loading application configurations.
+type ConfigLoader interface {
+	Load(path string) (FileConfig, error)
+}
+
+// FileConfig is the struct that will be used to store the configuration of the apps
+type FileConfig struct {
+	Apps       []AppConfig         `json:"apps"`
+	Shutdown   string              `json:"shutdown"`
+	Categories map[string][]string `json:"categories"`
+}
+
+// AppConfig is the struct that will be used to store the configuration of each app
+type AppConfig struct {
+	Name        string `json:"name"`
+	AllowedFrom string `json:"allowed_from"` // AllowedFrom is the initial hour that the app is allowed to be used
+	AllowedTo   string `json:"allowed_to"`   // AllowedTo is the final hour that the app is allowed to be used
+}
+
 type Loader struct {
 }
 

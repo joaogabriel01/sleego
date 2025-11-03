@@ -11,6 +11,11 @@ import (
 	"github.com/joaogabriel01/sleego/internal/logger"
 )
 
+// ShutdownPolicy defines the behavior for shutting down the system
+type ShutdownPolicy interface {
+	Apply(ctx context.Context, endTime time.Time) error
+}
+
 type ShutdownPolicyImpl struct {
 	shutdown     func() error
 	c            chan string
