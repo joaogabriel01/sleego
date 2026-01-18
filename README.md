@@ -1,179 +1,193 @@
 # Sleego
 
+![Sleego](docs/images/sleego_doc.png)
 
-![Sleego](images/sleego_doc.png)  
+Sleego is a small Go-based tool that enforces **time-based rules** on computer usage.
 
-**Sleego** is a Go application designed to monitor and control the execution of processes based on specified schedules. It allows you to configure time restrictions for applications, forcefully terminating those running outside their permitted hours. Additionally, Sleego supports scheduled system shutdowns.
+It works by:
 
-## Table of Contents
+* monitoring running processes
+* applying allowed time windows
+* terminating processes that run outside their configured schedule
+* optionally triggering a system shutdown at a fixed time
 
-- [Overview](#overview)
-- [Features](#features)
-- [Screenshots](#screenshots)
-- [Configuration Structure](#configuration-structure)
-- [Installation and Execution](#installation-and-execution)
-  - [For End Users (Windows 64-bit Installer)](#for-end-users-windows-64-bit-installer)
-  - [For Advanced Users (Run from Source)](#for-advanced-users-run-from-source)
-- [Usage](#usage)
-  - [Process Monitoring](#process-monitoring)
-  - [Scheduled Shutdown](#scheduled-shutdown)
-- [Notifications](#notifications)
-- [Security and Considerations](#security-and-considerations)
-- [Contributions](#contributions)
-  - [Todo](#todo)
-- [License](#license)
+Sleego is **configuration-driven** and does not provide a graphical interface in this repository.
+
+---
 
 ## Overview
 
-Sleego monitors running processes based on a JSON configuration file that lists processes and their allowed execution times. It periodically checks for running processes and immediately terminates any outside their permitted schedule.
+Sleego continuously monitors system processes based on a JSON configuration file.
 
-- **GUI Version:** Modify configuration directly in the interface. After editing, click "Save and Run" to apply changes without restarting.
-- **CLI Version:** Requires restarting the application after editing the configuration file.
+For each configured application (or logical rule), Sleego:
 
-Both versions support scheduled system shutdowns and provide system notifications about terminated processes and upcoming shutdowns.
+* checks whether it is running
+* verifies if the current time is within the allowed interval
+* terminates the process if it is outside that interval
+
+Additionally, Sleego can schedule a system shutdown and emit warnings before it happens.
+
+The project is designed to be predictable and non-interactive at runtime.
+All decisions are made **beforehand**, in the configuration file.
+
+---
 
 ## Features
 
-- **Process Monitoring:** Terminates processes running outside allowed time frames.
-- **Scheduled Shutdown:** Shuts down the computer at a specified time, with prior notifications.
-- **System Notifications:** Alerts when processes are terminated and before system shutdown.
-- **GUI with System Tray:** Easy access and user-friendly interface.
+* **Process scheduling**
 
-## Screenshots
+  * Define allowed time windows for applications
+  * Processes running outside their window are terminated
 
-![Sleego Main Interface](images/sleego_main_interface.png)  
-*Figure 1: Sleego's main GUI interface.*
+* **Scheduled system shutdown**
 
-## Configuration Structure
+  * Define a fixed shutdown time
+  * Receive advance warnings
+  * Shutdown happens automatically
 
-Your `config.json` should follow this format:
+* **Categories (logical rules)**
+
+  * Applications can be grouped under logical names
+  * Categories behave like application rules
+
+* **Notifications**
+
+  * Alerts before shutdown
+  * Alerts when processes are terminated
+
+---
+
+## Configuration
+
+Sleego is fully driven by a `config.json` file.
+
+### Example
 
 ```json
 {
   "apps": [
     {
-      "name": "example1.exe",
+      "name": "browser.exe",
       "allowed_from": "09:00",
-      "allowed_to": "10:00"
+      "allowed_to": "18:00"
     },
     {
-      "name": "example2.exe",
-      "allowed_from": "14:00",
+      "name": "games",
+      "allowed_from": "20:00",
       "allowed_to": "23:30"
     }
   ],
-  "shutdown": "23:59"
+  "shutdown": "23:59",
+  "categories": {
+    "games": ["steam.exe", "game.exe"]
+  }
 }
 ```
 
-- **name**: The process name (e.g., `app1.exe`).
-- **allowed_from**: Allowed start time (HH:MM).
-- **allowed_to**: Allowed end time (HH:MM).
-- **shutdown**: Scheduled shutdown time.
+### Fields
 
-## Installation and Execution
+* **apps**
 
-### For End Users (Windows 64-bit Installer)
+  * `name`: process name or logical category name
+  * `allowed_from`: start time (HH:MM)
+  * `allowed_to`: end time (HH:MM)
 
-If you’re on Windows 64-bit, use the provided installer for a hassle-free setup:
+* **shutdown**
 
-1. **Run the Installer:**  
-   Double-click the installer (setup/) and follow the on-screen instructions.
+  * Time when the system should shut down (HH:MM)
 
-2. **Launch Sleego:**  
-   Once installed, you can run Sleego from the Start Menu or by navigating to its installation folder and double-clicking the executable.
+* **categories**
 
-### For Advanced Users (Run from Source)
+  * Map of logical names to process names
+  * Categories can be referenced in `apps` like regular applications
 
-If you prefer to run Sleego from source (for development, customization, or non-Windows platforms):
+---
 
-**Prerequisites:**
-- **Go Installed (v1.18+ recommended)**
-- **Ensure `images` and `config.json` Exist** in the working directory.
-- **GCC for GUI Builds** (if you want the GUI version):
-  - **Windows:** Install [MinGW](https://www.mingw-w64.org/downloads/)
-  - **macOS:**  
-    ```bash
-    xcode-select --install
-    ```
-  - **Linux (Debian-based):**  
-    ```bash
-    sudo apt-get install build-essential
-    ```
+## Usage (CLI)
 
-**Building Steps:**
-1. **Clone the repository**:
-    ```bash
-    git clone https://github.com/joaogabriel01/sleego.git
-    cd sleego
-    ```
-2. **Install dependencies**:
-    ```bash
-    go mod tidy
-    ```
+Sleego is intended to be run as a long-lived process.
 
-**Using the Makefile:**  
-A Makefile is included to streamline the build process. For example:
+### Basic execution
+
 ```bash
 make cli
-make linux_gui_bin
-make windows_gui_bin
-```
-`make clean` removes build artifacts.
-
-## Usage
-
-### Process Monitoring
-
-When Sleego starts, it loads the configuration and monitors processes. Processes running outside allowed times are terminated immediately.
-
-**Example:**
-```
-Starting process policy with config: [{name:app1.exe, allowed_from:08:00, allowed_to:18:00}, {name:app2.exe, allowed_from:09:00, allowed_to:23:20}] from path: ./config.json
+./sleego
 ```
 
-### Scheduled Shutdown
+Once started, Sleego:
 
-- **GUI:**
-  1. Open the Sleego GUI.
-  2. Enter the shutdown time (HH:MM).
-  3. Click "Run".
+* loads the configuration
+* starts monitoring processes
+* applies shutdown rules
+* runs indefinitely
 
-- **CLI:**
-  1. Edit the `shutdown` field in `config.json`.
-  2. Restart the CLI application.
+Any change to the configuration file requires **restarting the process**.
 
-Sleego will display notifications as the shutdown time approaches and before initiating it.
+---
 
 ## Notifications
 
-- **Process Termination Alerts:**  
-  Alerts when a process is terminated due to schedule restrictions.
+Sleego emits notifications for:
 
-- **Shutdown Warnings:**  
-  Alerts before the scheduled shutdown (e.g., 10, 3, and 1 minute warnings).
+* Process termination events
+* Upcoming shutdown warnings (for example, 10 minutes before)
 
-## Security and Considerations
+Notifications are informational only and do not require user interaction.
 
-- **Forceful Termination:**  
-  Processes are closed without warning. Double-check your configuration.
-- **Scheduled Shutdown:**  
-  The system will shut down at the specified time—save your work in advance.
-- **Permissions:**  
-  Ensure you have permissions to terminate listed processes and to shut down the system.
-- **System Tray Access:**  
-  Sleego runs in the background and is accessible from the system tray.
+---
 
-## Contributions
+## Security and considerations
 
-Contributions are welcome. Feel free to open an issue or submit a pull request.
+* **Forceful termination**
 
-### Todo
+  * Processes are killed immediately if they violate the schedule
+  * Double-check configuration to avoid unintended data loss
 
-- **Application Groups**: Ability to create groups of applications with the same schedule.
-- **Process Selection UI**: Ability to view running processes to facilitate adding processes to be monitored.
-- **Enhanced GUI Visualization**: Add options for customizing themes (light/dark mode) and resizing the interface for better usability and readability.
+* **Shutdown**
+
+  * The system will shut down at the configured time
+  * Save your work beforehand
+
+* **Permissions**
+
+  * Sleego must run with sufficient privileges to:
+
+    * terminate processes
+    * trigger system shutdown
+
+---
+
+## Intended usage
+
+Sleego is intentionally simple and opinionated.
+
+It is not:
+
+* a productivity tracker
+* a parental control system
+* an analytics or reporting tool
+
+It exists to enforce **predefined boundaries** with minimal runtime interaction.
+
+---
+
+## Related projects
+
+* **Sleego UI**
+  A separate repository provides a desktop UI built on top of this core.
+
+  [https://github.com/joaogabriel01/sleego-ui](https://github.com/joaogabriel01/sleego-ui)
+
+---
 
 ## License
 
 This project is licensed under the MIT License.
+
+---
+
+### Notes on scope
+
+This repository contains **only the core engine**.
+Any user interface, installer, or system integration lives outside of this project.
+
