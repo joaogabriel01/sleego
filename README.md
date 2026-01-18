@@ -1,6 +1,6 @@
 # Sleego
 
-![Sleego](docs/images/sleego_doc.png)
+![Sleego](images/sleego_doc.png)
 
 Sleego is a small Go-based tool that enforces **time-based rules** on computer usage.
 
