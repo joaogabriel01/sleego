@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/joaogabriel01/sleego"
@@ -31,24 +32,33 @@ func main() {
 	config, err := loader.Load(*configPath)
 	if err != nil {
 		loggerInstance.Error("Error loading config file: " + err.Error())
+		os.Exit(1)
+	}
+
+	if err := sleego.ValidateConfig(config); err != nil {
+		loggerInstance.Error("Invalid config: " + err.Error())
+		os.Exit(1)
 	}
 
 	monitor := &sleego.ProcessorMonitorImpl{}
 	categoryOp := sleego.GetCategoryOperator()
 	appPolicy := sleego.NewProcessPolicyImpl(monitor, categoryOp, nil, nil)
 
-	shutdownChannel := make(chan string)
-	shutdownPolicy := sleego.NewShutdownPolicyImpl(shutdownChannel, []int{})
-	shutdownTime, err := time.Parse("15:04", config.Shutdown)
-	if err != nil {
-		loggerInstance.Error("Error parsing shutdown time: " + err.Error())
-	}
-
 	loggerInstance.Info("Starting process policy with config: " + *configPath)
-	loggerInstance.Info("Starting shutdown policy with config: " + *configPath)
-
 	go appPolicy.Apply(ctx, config.Apps)
-	go shutdownPolicy.Apply(ctx, shutdownTime)
+
+	if config.Shutdown != "" {
+		shutdownChannel := make(chan string)
+		shutdownPolicy := sleego.NewShutdownPolicyImpl(shutdownChannel, []int{})
+		shutdownTime, err := time.Parse("15:04", config.Shutdown)
+		if err != nil {
+			loggerInstance.Error("Error parsing shutdown time: " + err.Error())
+			os.Exit(1)
+		}
+
+		loggerInstance.Info("Starting shutdown policy with config: " + *configPath)
+		go shutdownPolicy.Apply(ctx, shutdownTime)
+	}
 
 	select {}
 
