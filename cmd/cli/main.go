@@ -29,19 +29,14 @@ func main() {
 	}
 
 	loader := &sleego.Loader{}
-	config, err := loader.Load(*configPath)
+	categoryOp := sleego.GetCategoryOperator()
+	config, err := loadConfig(*configPath, loader, categoryOp)
 	if err != nil {
-		loggerInstance.Error("Error loading config file: " + err.Error())
-		os.Exit(1)
-	}
-
-	if err := sleego.ValidateConfig(config); err != nil {
-		loggerInstance.Error("Invalid config: " + err.Error())
+		loggerInstance.Error(err.Error())
 		os.Exit(1)
 	}
 
 	monitor := &sleego.ProcessorMonitorImpl{}
-	categoryOp := sleego.GetCategoryOperator()
 	appPolicy := sleego.NewProcessPolicyImpl(monitor, categoryOp, nil, nil)
 
 	loggerInstance.Info("Starting process policy with config: " + *configPath)
@@ -62,4 +57,18 @@ func main() {
 
 	select {}
 
+}
+
+func loadConfig(path string, loader sleego.ConfigLoader, categoryOp sleego.CategoryOperator) (sleego.FileConfig, error) {
+	config, err := loader.Load(path)
+	if err != nil {
+		return sleego.FileConfig{}, fmt.Errorf("Error loading config file: %w", err)
+	}
+
+	if err := sleego.ValidateConfig(config); err != nil {
+		return sleego.FileConfig{}, fmt.Errorf("Invalid config: %w", err)
+	}
+
+	categoryOp.SetProcessByCategories(config.Categories)
+	return config, nil
 }

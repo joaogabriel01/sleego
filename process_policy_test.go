@@ -153,6 +153,43 @@ func TestEnforceProcessPolicy_ProcessNotInConfig(t *testing.T) {
 	}
 }
 
+func TestEnforceProcessPolicy_KillsProcessMatchedByCategory(t *testing.T) {
+	mockProcess := &MockProcess{
+		info: ProcessInfo{
+			Name: "steam.exe",
+			Pid:  4321,
+		},
+	}
+
+	mockMonitor := &MockProcessorMonitor{
+		processes: []Process{mockProcess},
+	}
+
+	categoryOp := newCategoryOperator()
+	categoryOp.SetProcessByCategories(map[string][]string{
+		"games": {"steam.exe"},
+	})
+
+	appsConfig := []AppConfig{
+		{
+			Name:        "games",
+			AllowedFrom: "09:00",
+			AllowedTo:   "17:00",
+		},
+	}
+
+	mockNow := func() time.Time {
+		return time.Date(2023, 10, 10, 18, 0, 0, 0, time.UTC)
+	}
+
+	policy := NewProcessPolicyImpl(mockMonitor, categoryOp, mockNow, nil)
+	policy.enforceProcessPolicy(appsConfig)
+
+	if !mockProcess.killed {
+		t.Errorf("Expected category-matched process to be killed")
+	}
+}
+
 func TestIsAllowedToRun_InvalidTimeFormat(t *testing.T) {
 	appConfig := AppConfig{
 		AllowedFrom: "invalid",
