@@ -1,6 +1,6 @@
 module github.com/joaogabriel01/sleego
 
-go 1.25.1
+go 1.26.4
 
 require (
 	github.com/rs/zerolog v1.34.0
@@ -17,5 +17,5 @@ require (
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 )
